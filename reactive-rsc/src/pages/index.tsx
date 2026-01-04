@@ -4,13 +4,8 @@ import { Toggle } from '../components/toggle';
 import { Display } from '../components/display';
 import { ServerInfo } from '../components/server-info';
 import { DataFetch } from '../components/data-fetch';
-import { ReactiveWrapper } from '../components/reactive-wrapper';
-import { ServerClock } from '../components/server-clock';
-import { ServerCounter } from '../components/server-counter';
-import { SimpleClock, SimpleClockId } from '../components/simple-clock';
-import { Reactive } from '../components/reactive';
-import { AutoReactiveClock } from '../components/auto-reactive-clock';
-import { UltimateClock } from '../components/ultimate-clock';
+import { SimpleClockV3 } from '../components/simple-clock-v3';
+import { SimpleCounterV3 } from '../components/simple-counter-v3';
 
 export default async function HomePage() {
   const data = await getData();
@@ -19,9 +14,7 @@ export default async function HomePage() {
   return (
     <div className="max-w-4xl">
       <title>Reactive Server Components Demo</title>
-      <h1 className="text-4xl font-bold tracking-tight mb-2">
-        Reactive Server Components
-      </h1>
+      <h1 className="text-4xl font-bold tracking-tight mb-2">Reactive Server Components</h1>
       <p className="text-gray-600 mb-6">
         Exploring server-driven UI with React Server Components + SSE
       </p>
@@ -32,47 +25,55 @@ export default async function HomePage() {
           This page demonstrates the boundaries between Server and Client Components:
         </p>
         <ul className="text-sm space-y-1 list-disc list-inside">
-          <li><strong>Client Components</strong> (green/blue/purple borders) - Interactive, run in browser</li>
-          <li><strong>Server Components</strong> (orange/cyan borders) - Run only on server</li>
-          <li><strong>Reactive Components</strong> (yellow section) - Server components with state that auto-updates via SSE</li>
+          <li>
+            <strong>Client Components</strong> (green/blue/purple borders) - Interactive, run in
+            browser
+          </li>
+          <li>
+            <strong>Server Components</strong> (orange/cyan borders) - Run only on server
+          </li>
+          <li>
+            <strong>Reactive Components</strong> (yellow section) - Server components with state
+            that auto-updates via SSE
+          </li>
         </ul>
       </div>
 
-      <div className="mb-4 p-4 bg-green-50 rounded border border-green-200">
-        <h2 className="text-xl font-bold mb-2">✨ New in v0.2: Component-Specific Signals</h2>
+      <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded border-2 border-green-300">
+        <h2 className="text-xl font-bold mb-2">✨ v0.3: Synchronous Hooks with useId()!</h2>
         <p className="text-sm mb-2">
-          Reactive components now use server-side state management:
-        </p>
-        <ul className="text-sm space-y-1 list-disc list-inside">
-          <li><code className="bg-white px-1">useServerSignal(id, key, initial)</code> - Server-side state (like useState)</li>
-          <li><code className="bg-white px-1">useServerEffect(id, fn, deps)</code> - Server-side effects (like useEffect)</li>
-          <li>Each component has its own SSE stream</li>
-          <li>Multiple components can run with different update rates</li>
-        </ul>
-      </div>
-
-      <div className="mb-4 p-4 bg-purple-50 rounded border border-purple-200">
-        <h2 className="text-xl font-bold mb-2">🎉 v0.2.1: Using React's useId()!</h2>
-        <p className="text-sm mb-2">
-          <strong>Great news!</strong> React's <code>useId()</code> DOES work in server components in React 19!
-        </p>
-        <p className="text-sm mb-2">
-          <strong>New pattern:</strong> Use the <code>&lt;Reactive&gt;</code> wrapper with <code>useId()</code>:
+          <strong>Revolutionary change!</strong> Hooks are now synchronous and use React's{' '}
+          <code className="bg-white px-1">useId()</code> internally:
         </p>
         <pre className="bg-white p-2 rounded text-xs font-mono overflow-x-auto">
-{`// Wrapper uses useId() and injects _reactiveId
-<Reactive>
-  <MyClock />
-</Reactive>
+          {`// ✅ Synchronous hooks with automatic ID generation!
+export function MyClock() {
+  // useServerSignal calls useId() internally
+  const [time, setTime, reactiveId] = useServerSignal('time', Date.now());
 
-// Server component receives _reactiveId automatically
-export async function MyClock({ _reactiveId }) {
-  const [time, setTime] = await useServerSignal(_reactiveId, 'time', Date.now());
-  // ... no manual ID management needed!
-}`}</pre>
-        <p className="text-xs text-gray-600 mt-2">
-          The <code>&lt;Reactive&gt;</code> wrapper uses <code>useId()</code> and passes it to your server component! 🎉
-        </p>
+  // useServerEffect uses the reactiveId
+  useServerEffect(reactiveId, () => {
+    const interval = setInterval(() => setTime(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Component self-wraps with ReactiveWrapper
+  return (
+    <ReactiveWrapper componentId={reactiveId}>
+      <div>{new Date(time).toLocaleTimeString()}</div>
+    </ReactiveWrapper>
+  );
+}`}
+        </pre>
+        <div className="mt-2 p-2 bg-green-100 rounded text-xs">
+          <strong>Key improvements:</strong>
+          <ul className="list-disc list-inside mt-1 space-y-1">
+            <li>Hooks are now synchronous (no async/await needed)</li>
+            <li>useId() called internally - fully automatic!</li>
+            <li>Clean, simple API with no manual ID management</li>
+            <li>Server components self-wrap for SSE connection</li>
+          </ul>
+        </div>
       </div>
 
       <h2 className="text-2xl font-bold mt-6 mb-3">Client Components</h2>
@@ -84,42 +85,37 @@ export async function MyClock({ _reactiveId }) {
       <ServerInfo />
       <DataFetch />
 
-      <h2 className="text-2xl font-bold mt-6 mb-3">Reactive Server Components (v0.2)</h2>
+      <h2 className="text-2xl font-bold mt-6 mb-3">Reactive Server Components (v0.3)</h2>
 
       <div className="border-yellow-400 -mx-4 mt-4 rounded-sm border border-dashed p-4 bg-yellow-50">
         <h3 className="text-sm font-bold mb-3">Component-Specific Reactive Updates</h3>
         <p className="text-sm mb-4">
-          Each component below has its own server-side state and SSE connection.
-          State updates on the server are pushed to connected clients in real-time.
+          Each component below uses the new v0.3 synchronous hooks API. They call{' '}
+          <code className="bg-white px-1">useId()</code> internally for automatic component
+          identification and self-wrap for SSE connection.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* NEW: Using <Reactive> with automatic useId() */}
-          <Reactive>
-            <AutoReactiveClock interval={1000} />
-          </Reactive>
+          {/* Clock updating every second */}
+          <SimpleClockV3 interval={1000} />
 
-          {/* Old API: Manual IDs still supported */}
-          <ReactiveWrapper componentId="server-clock-1">
-            <ServerClock reactiveId="server-clock-1" interval={1000} />
-          </ReactiveWrapper>
+          {/* Counter incrementing by 1 every 2 seconds */}
+          <SimpleCounterV3 increment={1} interval={2000} />
 
-          {/* Server Counter - increments by 1 every 2 seconds */}
-          <ReactiveWrapper componentId="server-counter-1">
-            <ServerCounter reactiveId="server-counter-1" increment={1} interval={2000} />
-          </ReactiveWrapper>
+          {/* Fast clock updating every 500ms */}
+          <SimpleClockV3 interval={500} />
 
-          {/* Second Server Counter - increments by 5 every 3 seconds */}
-          <ReactiveWrapper componentId="server-counter-2">
-            <ServerCounter reactiveId="server-counter-2" increment={5} interval={3000} />
-          </ReactiveWrapper>
+          {/* Counter incrementing by 5 every 3 seconds */}
+          <SimpleCounterV3 increment={5} interval={3000} />
         </div>
 
         <div className="mt-4 p-3 bg-white rounded border border-yellow-300">
           <p className="text-xs text-gray-600">
-            <strong>How it works:</strong> Each component uses <code>useServerSignal</code> to manage
-            server-side state and <code>useServerEffect</code> to run server-side intervals. When state
-            changes, the server notifies only clients subscribed to that specific component via SSE.
+            <strong>How it works:</strong> Each component uses <code>useServerSignal</code> which
+            calls <code>useId()</code> internally to generate a unique ID. The component then uses
+            this ID with <code>useServerEffect</code> and <code>ReactiveWrapper</code> for SSE
+            connection. When state changes, the server notifies only clients subscribed to that
+            specific component.
           </p>
         </div>
       </div>

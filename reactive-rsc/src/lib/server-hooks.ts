@@ -1,115 +1,70 @@
 /**
- * Server-Side "Hooks" for Reactive Server Components
+ * Server-Side Hooks for Reactive Server Components (v0.3)
  *
- * These are not real React hooks (server components don't support hooks),
- * but async functions that provide a hook-like API for managing server-side
- * state and effects.
- *
- * NEW in v0.2.1: Automatic component ID generation!
- * You no longer need to pass componentId - it's auto-generated.
+ * Synchronous hooks that use React's useId() for automatic component identification.
  *
  * Usage in server components:
  *
  * ```tsx
- * export async function MyComponent() {
- *   const [count, setCount] = await useServerSignal('count', 0);
+ * import { ReactiveWrapper } from '../components/reactive-wrapper';
  *
- *   await useServerEffect(async () => {
- *     const interval = setInterval(() => {
- *       setCount(count + 1);
- *     }, 1000);
+ * export function MyClock() {
+ *   const [time, setTime, reactiveId] = useServerSignal('time', Date.now());
  *
+ *   useServerEffect(reactiveId, () => {
+ *     const interval = setInterval(() => setTime(Date.now()), 1000);
  *     return () => clearInterval(interval);
  *   }, []);
  *
- *   return <div>Count: {count}</div>;
+ *   return (
+ *     <ReactiveWrapper componentId={reactiveId}>
+ *       <div>{new Date(time).toLocaleTimeString()}</div>
+ *     </ReactiveWrapper>
+ *   );
  * }
  * ```
  */
 
+import { useId } from 'react';
 import { stateManager } from './server-state-manager';
-import { generateComponentId } from './component-id';
 
-// Store component IDs per component instance
-const componentIdCache = new Map<string, string>();
-let callCounter = 0;
-
-/**
- * Get or create a component ID for the current component
- *
- * Uses call stack to automatically generate a unique ID based on
- * component location. Caches the ID for subsequent calls.
- */
-function getComponentId(): string {
-  const callId = `call-${callCounter++}`;
-
-  // Check if we already have an ID for this call location
-  const stack = new Error().stack || '';
-  const callerLine = stack.split('\n')[3] || '';
-
-  if (componentIdCache.has(callerLine)) {
-    return componentIdCache.get(callerLine)!;
-  }
-
-  // Generate new ID
-  const id = generateComponentId();
-  componentIdCache.set(callerLine, id);
-
-  return id;
-}
+// Track which components have initialized effects to prevent duplicates
+const initializedEffects = new Set<string>();
 
 /**
  * Create or access server-side state for a component
  *
- * Similar to useState, but the state lives on the server and persists
+ * This is a synchronous React hook that automatically generates a unique
+ * component ID using React's useId(). State lives on the server and persists
  * across renders. When state changes, subscribed clients are notified via SSE.
  *
- * NEW: componentId is now optional and auto-generated!
- *
- * @param keyOrComponentId - State key, or componentId if using manual IDs
- * @param initialValueOrKey - Initial value, or key if componentId provided
- * @param optionalInitialValue - Initial value if using manual componentId
- * @returns Tuple of [value, setValue]
+ * @param key - State key within this component
+ * @param initialValue - Initial value for the state
+ * @returns Tuple of [value, setValue, reactiveId]
  */
-export async function useServerSignal<T>(
-  keyOrComponentId: string,
-  initialValueOrKey: T | string,
-  optionalInitialValue?: T
-): Promise<[T, (value: T | ((prev: T) => T)) => void]> {
-  // Determine if old API (3 params) or new API (2 params)
-  let componentId: string;
-  let key: string;
-  let initialValue: T;
+export function useServerSignal<T>(
+  key: string,
+  initialValue: T
+): [T, (value: T | ((prev: T) => T)) => void, string] {
+  // Generate unique component ID using React's useId()
+  const reactiveId = useId();
 
-  if (optionalInitialValue !== undefined) {
-    // Old API: useServerSignal(componentId, key, initialValue)
-    componentId = keyOrComponentId;
-    key = initialValueOrKey as string;
-    initialValue = optionalInitialValue;
-  } else {
-    // New API: useServerSignal(key, initialValue)
-    componentId = getComponentId();
-    key = keyOrComponentId;
-    initialValue = initialValueOrKey as T;
-  }
   // Get existing state or use initial value
-  let currentValue = stateManager.getState(componentId, key);
+  let currentValue = stateManager.getState(reactiveId, key);
 
   if (currentValue === undefined) {
     currentValue = initialValue;
-    stateManager.setState(componentId, key, initialValue);
+    stateManager.setState(reactiveId, key, initialValue);
   }
 
   // Create setter function
   const setValue = (newValue: T | ((prev: T) => T)) => {
-    const current = stateManager.getState(componentId, key) as T;
-
+    const current = stateManager.getState(reactiveId, key) as T;
     const value = typeof newValue === 'function' ? (newValue as (prev: T) => T)(current) : newValue;
-
-    stateManager.setState(componentId, key, value);
+    stateManager.setState(reactiveId, key, value);
   };
 
-  return [currentValue as T, setValue];
+  return [currentValue as T, setValue, reactiveId];
 }
 
 /**
@@ -118,79 +73,31 @@ export async function useServerSignal<T>(
  * Similar to useEffect, but runs on the server. The effect function runs
  * once when the component is initialized and can return a cleanup function.
  *
- * Note: Unlike React's useEffect, this doesn't re-run on dependency changes.
- * Dependencies are mainly for documentation purposes.
- *
- * NEW: componentId is now optional and auto-generated!
- *
- * @param componentIdOrEffect - ComponentId (old API) or effect function (new API)
- * @param effectOrDeps - Effect function (old API) or deps array (new API)
- * @param optionalDeps - Dependencies array (old API only)
+ * @param reactiveId - Component ID from useServerSignal
+ * @param effect - Effect function that may return a cleanup function
+ * @param deps - Dependencies array (for documentation, doesn't trigger re-runs)
  */
-export async function useServerEffect(
-  componentIdOrEffect: string | (() => Promise<(() => void) | void> | (() => void) | void),
-  effectOrDeps?: (() => Promise<(() => void) | void> | (() => void) | void) | any[],
-  optionalDeps?: any[]
-): Promise<void> {
-  // Determine if old API (3 params) or new API (2 params)
-  let componentId: string;
-  let effect: () => Promise<(() => void) | void> | (() => void) | void;
-  let deps: any[];
-
-  if (typeof componentIdOrEffect === 'string') {
-    // Old API: useServerEffect(componentId, effect, deps)
-    componentId = componentIdOrEffect;
-    effect = effectOrDeps as () => Promise<(() => void) | void> | (() => void) | void;
-    deps = optionalDeps || [];
-  } else {
-    // New API: useServerEffect(effect, deps)
-    componentId = getComponentId();
-    effect = componentIdOrEffect;
-    deps = (effectOrDeps as any[]) || [];
-  }
+export function useServerEffect(
+  reactiveId: string,
+  effect: () => (() => void) | void,
+  deps: any[]
+): void {
   // Check if this component already has effects registered
-  // to avoid running effects multiple times
-  const stats = stateManager.getStats();
-  const hasEffects = stats.subscribers.some((s) => s.componentId === componentId);
-
-  if (hasEffects) {
-    console.log(`[useServerEffect] ${componentId} already initialized, skipping effect`);
+  if (initializedEffects.has(reactiveId)) {
     return;
   }
 
-  console.log(`[useServerEffect] Running effect for ${componentId}`);
+  console.log(`[useServerEffect] Running effect for ${reactiveId}`);
+  initializedEffects.add(reactiveId);
 
   try {
-    const cleanup = await effect();
+    const cleanup = effect();
 
     if (cleanup && typeof cleanup === 'function') {
-      stateManager.registerEffect(componentId, cleanup);
+      stateManager.registerEffect(reactiveId, cleanup);
     }
   } catch (error) {
-    console.error(`[useServerEffect] Error in effect for ${componentId}:`, error);
-  }
-}
-
-/**
- * Initialize a reactive component
- *
- * This should be called once to set up the component's reactive behavior.
- * Typically called from an API route or server initialization.
- *
- * @param componentId - Unique identifier for the component
- * @param setup - Async setup function that configures state and effects
- */
-export async function initReactiveComponent(
-  componentId: string,
-  setup: () => Promise<void> | void
-): Promise<void> {
-  console.log(`[initReactiveComponent] Initializing ${componentId}`);
-
-  try {
-    await setup();
-  } catch (error) {
-    console.error(`[initReactiveComponent] Error initializing ${componentId}:`, error);
-    throw error;
+    console.error(`[useServerEffect] Error in effect for ${reactiveId}:`, error);
   }
 }
 
@@ -200,18 +107,19 @@ export async function initReactiveComponent(
  * Removes all state, effects, and subscribers for a component.
  * Should be called when a component is no longer needed.
  *
- * @param componentId - Component to cleanup
+ * @param reactiveId - Component to cleanup
  */
-export function cleanupReactiveComponent(componentId: string): void {
-  console.log(`[cleanupReactiveComponent] Cleaning up ${componentId}`);
-  stateManager.cleanupComponent(componentId);
+export function cleanupReactiveComponent(reactiveId: string): void {
+  console.log(`[cleanupReactiveComponent] Cleaning up ${reactiveId}`);
+  initializedEffects.delete(reactiveId);
+  stateManager.cleanupComponent(reactiveId);
 }
 
 /**
  * Get current state for a component (for debugging)
  */
-export function getComponentState(componentId: string): Record<string, any> {
-  return stateManager.getAllState(componentId);
+export function getComponentState(reactiveId: string): Record<string, any> {
+  return stateManager.getAllState(reactiveId);
 }
 
 /**
