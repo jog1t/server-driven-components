@@ -4,96 +4,112 @@ import { useEffect, useState, useTransition, type ReactNode } from 'react';
 
 interface ReactiveWrapperProps {
   children: ReactNode;
-  endpoint?: string;
+  componentId: string;
+  showDebug?: boolean;
 }
 
 export const ReactiveWrapper = ({
   children,
-  endpoint = '/api/reactive-stream'
+  componentId,
+  showDebug = true,
 }: ReactiveWrapperProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [updateCount, setUpdateCount] = useState(0);
-  const [serverData, setServerData] = useState<any>(null);
+  const [serverState, setServerState] = useState<Record<string, any>>({});
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
 
     try {
-      // Create SSE connection
+      // Create component-specific SSE connection
+      const endpoint = `/api/reactive-stream?componentId=${encodeURIComponent(componentId)}`;
       eventSource = new EventSource(endpoint);
 
       eventSource.onopen = () => {
         setIsConnected(true);
-        console.log('[Reactive Wrapper] SSE connection opened');
+        console.log(`[ReactiveWrapper] SSE connection opened for ${componentId}`);
       };
 
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('[Reactive Wrapper] Received SSE event:', data);
+          console.log(`[ReactiveWrapper] ${componentId} received:`, data);
 
-          setLastUpdate(new Date().toISOString());
-          setUpdateCount((prev) => prev + 1);
+          if (data.type === 'connected') {
+            // Initial connection - set initial state
+            if (data.initialState) {
+              startTransition(() => {
+                setServerState(data.initialState);
+              });
+            }
+          } else if (data.type === 'component-update') {
+            // State update - update with new state
+            setLastUpdate(new Date().toISOString());
+            setUpdateCount((prev) => prev + 1);
 
-          if (data.type === 'server-update') {
-            // Update server data when we receive updates
             startTransition(() => {
-              setServerData(data.data);
+              setServerState(data.allState || {});
             });
           }
         } catch (err) {
-          console.error('[Reactive Wrapper] Error parsing SSE message:', err);
+          console.error(`[ReactiveWrapper] ${componentId} error parsing:`, err);
         }
       };
 
       eventSource.onerror = (error) => {
-        console.error('[Reactive Wrapper] SSE error:', error);
+        console.error(`[ReactiveWrapper] ${componentId} SSE error:`, error);
         setIsConnected(false);
       };
     } catch (err) {
-      console.error('[Reactive Wrapper] Error creating EventSource:', err);
+      console.error(`[ReactiveWrapper] ${componentId} error creating EventSource:`, err);
       setIsConnected(false);
     }
 
     // Cleanup on unmount
     return () => {
       if (eventSource) {
-        console.log('[Reactive Wrapper] Closing SSE connection');
+        console.log(`[ReactiveWrapper] Closing SSE connection for ${componentId}`);
         eventSource.close();
       }
     };
-  }, [endpoint]);
+  }, [componentId]);
 
   return (
     <div>
-      {/* SSE Connection Status */}
-      <div className="mb-2 text-xs flex items-center gap-2">
-        <span
-          className={`inline-block w-2 h-2 rounded-full ${
-            isConnected ? 'bg-green-500' : 'bg-red-500'
-          }`}
-        />
-        <span>
-          SSE: {isConnected ? 'Connected' : 'Disconnected'} | Updates: {updateCount}
-          {lastUpdate && ` | Last: ${new Date(lastUpdate).toLocaleTimeString()}`}
-        </span>
-        {isPending && <span className="text-yellow-600">⟳ Updating...</span>}
-      </div>
+      {showDebug && (
+        <>
+          {/* SSE Connection Status */}
+          <div className="mb-2 text-xs flex items-center gap-2">
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+            <span>
+              SSE: {isConnected ? 'Connected' : 'Disconnected'} | Updates: {updateCount}
+              {lastUpdate && ` | Last: ${new Date(lastUpdate).toLocaleTimeString()}`}
+            </span>
+            {isPending && <span className="text-yellow-600">⟳ Updating...</span>}
+          </div>
+        </>
+      )}
 
-      {/* Render children with server data passed as context */}
-      <div data-server-data={JSON.stringify(serverData)}>
+      {/* Render children with server state available */}
+      <div data-component-id={componentId} data-server-state={JSON.stringify(serverState)}>
         {children}
       </div>
 
-      {/* Display live server data */}
-      {serverData && (
+      {/* Display live server state */}
+      {showDebug && Object.keys(serverState).length > 0 && (
         <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono">
-          <div className="font-bold mb-1">Live Server Data (via SSE):</div>
-          <div>Time: {serverData.serverTime}</div>
-          <div>Counter: {serverData.counter}</div>
-          <div>Random: {serverData.randomValue}</div>
+          <div className="font-bold mb-1">Live Server State (via SSE):</div>
+          {Object.entries(serverState).map(([key, value]) => (
+            <div key={key}>
+              {key}: {JSON.stringify(value)}
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -392,3 +392,128 @@ reactive-rsc/
 - **Concept:** ✅ Proven (server can push updates via SSE)
 - **Limitation:** Server components don't truly refetch (display SSE data in wrapper instead)
 - **Next Steps:** Test in browser, iterate on refetch mechanism
+
+---
+
+### v0.2.0 - Component-Specific Signals (2026-01-04) ✅ COMPLETED
+
+#### Goal
+Move from global interval-based updates to **component-specific reactive signals** with server-side state management.
+
+#### User Requirements
+```tsx
+// Desired API
+export async function ReactiveComponent() {
+  const [value, setValue] = await useSignal();
+
+  await useServerEffect(async () => {
+    const interval = setInterval(() => {
+      setValue(Date.now());
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return <p>Current server time is: {value}</p>;
+}
+```
+
+#### Implementation
+
+**1. Server-Side State Management**
+- Created `ServerStateManager` class (`lib/server-state-manager.ts`)
+  - Manages state per component ID
+  - Tracks effect cleanups
+  - Handles SSE subscriptions
+  - Notifies subscribers on state changes
+
+**2. "Hook-like" APIs** (`lib/server-hooks.ts`)
+- `useServerSignal(id, key, initial)` - Server-side state (like useState)
+- `useServerEffect(id, effect, deps)` - Server-side effects (like useEffect)
+- `initReactiveComponent(id, setup)` - Component initialization
+- `cleanupReactiveComponent(id)` - Component cleanup
+
+**3. Component-Specific SSE**
+- Updated `/api/reactive-stream` to accept `?componentId=...` query param
+- Each component gets its own SSE stream
+- Server notifies only subscribed clients for that component
+
+**4. Enhanced ReactiveWrapper**
+- Now requires `componentId` prop
+- Connects to component-specific SSE endpoint
+- Displays live server state for that component
+- Optional `showDebug` prop to hide debug UI
+
+**5. Demo Components**
+- `ServerClock` - Updates every 1 second
+- `ServerCounter` - Configurable increment and interval
+- Demonstrated 3 reactive components with different update rates
+
+#### Key Files Created/Modified
+```
+reactive-rsc/
+├── src/lib/
+│   ├── server-state-manager.ts      ✅ NEW - State management
+│   └── server-hooks.ts              ✅ NEW - Hook-like APIs
+├── src/components/
+│   ├── server-clock.tsx             ✅ NEW - Reactive clock
+│   ├── server-counter.tsx           ✅ NEW - Reactive counter
+│   └── reactive-wrapper.tsx         ✅ UPDATED - Component-specific
+├── src/pages/
+│   ├── index.tsx                    ✅ UPDATED - Demo page
+│   └── api/
+│       └── reactive-stream.ts       ✅ UPDATED - Component-specific SSE
+└── DESIGN-v0.2.md                   ✅ NEW - Design documentation
+```
+
+#### Achievements
+- ✅ Component-specific reactive updates (not global)
+- ✅ Server-side state management
+- ✅ Server-side lifecycle management
+- ✅ Multiple components with different update rates
+- ✅ Clean hook-like API for developers
+- ✅ Build successful (no errors)
+
+#### API Example
+```tsx
+// Define reactive server component
+export async function ServerClock({ reactiveId }: { reactiveId: string }) {
+  const [time, setTime] = await useServerSignal(reactiveId, 'time', new Date().toISOString());
+
+  await useServerEffect(reactiveId, async () => {
+    const interval = setInterval(() => {
+      setTime(new Date().toISOString());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return <div>Server time: {new Date(time).toLocaleTimeString()}</div>;
+}
+
+// Wrap with ReactiveWrapper
+<ReactiveWrapper componentId="server-clock-1">
+  <ServerClock reactiveId="server-clock-1" interval={1000} />
+</ReactiveWrapper>
+```
+
+#### Current Limitations
+- **Manual component IDs** - Developer must provide unique ID
+- **No automatic initialization** - Components initialize on first render
+- **No cleanup on client disconnect** - Effects continue running
+- **In-memory state only** - No persistence (Redis, etc.)
+- **Still not true RSC refetch** - State displayed in client wrapper
+
+#### What Works
+- ✅ Per-component state management
+- ✅ Server-driven updates via SSE
+- ✅ Multiple components with independent timers
+- ✅ Clean separation of concerns
+- ✅ Scalable architecture (can add Redis later)
+
+#### What's Next
+- [ ] Automatic component ID generation
+- [ ] Client disconnect detection and cleanup
+- [ ] Persistent state storage (Redis)
+- [ ] True RSC payload refetching
+- [ ] Error boundaries and reconnection logic

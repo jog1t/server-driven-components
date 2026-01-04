@@ -1,41 +1,52 @@
 // SSE (Server-Sent Events) endpoint for reactive server components
-// This API route provides a stream of server events to connected clients
+// This API route provides component-specific streams of server events
 
-export const GET = async () => {
+import { stateManager } from '../../lib/server-state-manager';
+
+export const GET = async (request: Request) => {
+  // Get component ID from query params
+  const url = new URL(request.url);
+  const componentId = url.searchParams.get('componentId');
+
+  if (!componentId) {
+    return new Response('Missing componentId parameter', { status: 400 });
+  }
+
+  console.log(`[SSE] New connection for component: ${componentId}`);
+
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
 
-      // Send initial connection message
+      // Send helper function
       const send = (data: any) => {
-        const message = `data: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(message));
+        try {
+          const message = `data: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(message));
+        } catch (error) {
+          console.error(`[SSE] Error sending data:`, error);
+        }
       };
 
       // Send connection established message
       send({
         type: 'connected',
-        message: 'SSE connection established',
+        componentId,
+        message: `SSE connection established for ${componentId}`,
         timestamp: new Date().toISOString(),
+        initialState: stateManager.getAllState(componentId),
       });
 
-      // Server-driven updates - send a message every 2 seconds
-      const intervalId = setInterval(() => {
-        send({
-          type: 'server-update',
-          timestamp: new Date().toISOString(),
-          data: {
-            serverTime: new Date().toLocaleTimeString(),
-            counter: Math.floor(Date.now() / 2000) % 100, // Changes every 2s
-            randomValue: Math.floor(Math.random() * 100),
-          },
-        });
-      }, 2000);
+      // Subscribe to component state changes
+      const unsubscribe = stateManager.subscribe({
+        componentId,
+        send,
+      });
 
       // Cleanup on connection close
-      // Note: This might not be called in all scenarios, especially in development
       return () => {
-        clearInterval(intervalId);
+        console.log(`[SSE] Connection closed for ${componentId}`);
+        unsubscribe();
       };
     },
   });
