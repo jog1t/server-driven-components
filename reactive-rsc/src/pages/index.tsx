@@ -7,6 +7,9 @@ import { DataFetch } from '../components/data-fetch';
 import { ReactiveWrapper } from '../components/reactive-wrapper';
 import { ServerClock } from '../components/server-clock';
 import { ServerCounter } from '../components/server-counter';
+import { SimpleClock, SimpleClockId } from '../components/simple-clock';
+import { Reactive } from '../components/reactive';
+import { AutoReactiveClock } from '../components/auto-reactive-clock';
 
 export default async function HomePage() {
   const data = await getData();
@@ -47,6 +50,30 @@ export default async function HomePage() {
         </ul>
       </div>
 
+      <div className="mb-4 p-4 bg-purple-50 rounded border border-purple-200">
+        <h2 className="text-xl font-bold mb-2">🎉 v0.2.1: Using React's useId()!</h2>
+        <p className="text-sm mb-2">
+          <strong>Great news!</strong> React's <code>useId()</code> DOES work in server components in React 19!
+        </p>
+        <p className="text-sm mb-2">
+          <strong>New pattern:</strong> Use the <code>&lt;Reactive&gt;</code> wrapper with <code>useId()</code>:
+        </p>
+        <pre className="bg-white p-2 rounded text-xs font-mono overflow-x-auto">
+{`// Wrapper uses useId() and injects _reactiveId
+<Reactive>
+  <MyClock />
+</Reactive>
+
+// Server component receives _reactiveId automatically
+export async function MyClock({ _reactiveId }) {
+  const [time, setTime] = await useServerSignal(_reactiveId, 'time', Date.now());
+  // ... no manual ID management needed!
+}`}</pre>
+        <p className="text-xs text-gray-600 mt-2">
+          The <code>&lt;Reactive&gt;</code> wrapper uses <code>useId()</code> and passes it to your server component! 🎉
+        </p>
+      </div>
+
       <h2 className="text-2xl font-bold mt-6 mb-3">Client Components</h2>
       <Counter />
       <Toggle />
@@ -66,7 +93,12 @@ export default async function HomePage() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Server Clock - updates every 1 second */}
+          {/* NEW: Using <Reactive> with automatic useId() */}
+          <Reactive>
+            <AutoReactiveClock interval={1000} />
+          </Reactive>
+
+          {/* Old API: Manual IDs still supported */}
           <ReactiveWrapper componentId="server-clock-1">
             <ServerClock reactiveId="server-clock-1" interval={1000} />
           </ReactiveWrapper>
