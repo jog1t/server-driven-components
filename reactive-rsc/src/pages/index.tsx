@@ -10,6 +10,7 @@ import { ServerCounter } from '../components/server-counter';
 import { SimpleClock, SimpleClockId } from '../components/simple-clock';
 import { Reactive } from '../components/reactive';
 import { AutoReactiveClock } from '../components/auto-reactive-clock';
+import { UltimateClock } from '../components/ultimate-clock';
 
 export default async function HomePage() {
   const data = await getData();
