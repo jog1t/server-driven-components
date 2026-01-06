@@ -1,49 +1,45 @@
 /**
- * Reactive Clock - TRUE Server Component
+ * Reactive Clock - TRUE Server Component (RSC Streaming Version)
  *
- * This is a server component that re-renders on the server when
- * the channel broadcasts updates.
+ * This is a server component that receives data from channel broadcasts.
+ * It's rendered on the server and streamed as RSC payload.
  */
-
-import { ReactiveSubscribe } from './reactive-subscribe';
-import { clockChannel } from '../channels/clock';
 
 interface ReactiveClockProps {
   interval?: number;
+  _channelData?: { time: number; formatted: string };
 }
 
 /**
- * Server component that displays current time
+ * Server component that displays current time from channel data
  *
- * ReactiveSubscribe triggers router.reload() on updates,
- * causing this component to re-render on the server.
+ * This component is rendered on the server. When the channel broadcasts,
+ * it's re-rendered with new data and streamed as RSC payload to the client.
  */
-export async function ReactiveClock({ interval = 1000 }: ReactiveClockProps) {
-  // This runs on the SERVER every time it re-renders
-  const serverTime = new Date().toISOString();
+export async function ReactiveClock({ interval = 1000, _channelData }: ReactiveClockProps) {
+  // This runs on the SERVER
+  // If we have channel data, use it; otherwise use server time
+  const displayTime = _channelData?.formatted || new Date().toLocaleTimeString();
+  const serverRenderTime = new Date().toISOString();
 
   return (
     <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded border border-purple-300">
-      {/* Client component that triggers refetch */}
-      <ReactiveSubscribe channel={clockChannel} scope={{ interval }} />
-
       <h4 className="text-lg font-bold mb-3 text-purple-800">
-        ⚡ Reactive Server Component (interval: {interval / 1000}s)
+        ⚡ RSC Streaming Clock (interval: {interval / 1000}s)
       </h4>
 
-      <div className="text-3xl font-mono font-bold text-purple-900">
-        {new Date(serverTime).toLocaleTimeString()}
-      </div>
+      <div className="text-3xl font-mono font-bold text-purple-900">{displayTime}</div>
 
       <div className="mt-2 text-xs text-gray-600">
-        Server timestamp: {serverTime}
+        Server rendered: {new Date(serverRenderTime).toLocaleTimeString()}
       </div>
 
       <div className="mt-3 p-2 bg-white/50 rounded text-xs text-purple-700">
-        🎯 <strong>TRUE Server Component!</strong>
+        🎯 <strong>TRUE Server Component + RSC Streaming!</strong>
         <br />
-        This component renders on the server. When the channel broadcasts,
-        ReactiveSubscribe triggers router.reload(), causing a full RSC refetch.
+        This component renders on the server. Channel broadcasts trigger re-render,
+        <br />
+        and RSC payload is streamed directly over SSE. No page reload!
       </div>
     </div>
   );

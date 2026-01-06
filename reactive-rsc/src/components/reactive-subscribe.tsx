@@ -1,57 +1,63 @@
 /**
- * Reactive Subscribe Component
+ * Reactive Subscribe Component (RSC Streaming)
  *
- * Triggers RSC refetch when channel broadcasts updates.
- * This causes server components to re-render on the server.
+ * Consumes RSC payload streams from SSE and renders server components reactively.
+ * This allows true reactive server components without page navigation.
  */
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import type { ChannelDefinition } from '../lib/channels/types';
+import { createFromReadableStream } from '@vitejs/plugin-rsc/browser';
 
 interface ReactiveSubscribeProps<TData, TScope> {
   channel: ChannelDefinition<TData, TScope>;
   scope?: TScope;
-  onUpdate?: (data: TData) => void;
+  componentPath: string; // Path to the component to render (e.g., "components/reactive-clock")
   showDebug?: boolean;
 }
 
 /**
- * Subscribe to a channel and trigger RSC refetch on updates
+ * Subscribe to a channel and render RSC payloads
  *
- * This causes server components to re-render on the server,
- * making them truly reactive.
+ * This component connects to the RSC streaming endpoint, consumes
+ * RSC payloads, and renders the server component reactively.
  */
 export function ReactiveSubscribe<TData, TScope>({
   channel,
   scope = {} as TScope,
-  onUpdate,
+  componentPath,
   showDebug = true,
 }: ReactiveSubscribeProps<TData, TScope>) {
   const [isConnected, setIsConnected] = useState(false);
   const [updateCount, setUpdateCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [renderedComponent, setRenderedComponent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
+    let rscChunks: string[] = [];
+    let isReceivingRSC = false;
 
     try {
       const params = new URLSearchParams({
         channel: channel.name,
         scope: JSON.stringify(scope),
+        component: componentPath,
       });
 
-      const url = `/api/channel-stream?${params}`;
+      const url = `/api/rsc-stream?${params}`;
       eventSource = new EventSource(url);
 
       eventSource.onopen = () => {
         setIsConnected(true);
+        setError(null);
         console.log(`[ReactiveSubscribe] Connected to ${channel.name}`);
       };
 
-      eventSource.onmessage = (event) => {
+      eventSource.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
 
@@ -60,34 +66,73 @@ export function ReactiveSubscribe<TData, TScope>({
             return;
           }
 
-          console.log(`[ReactiveSubscribe] ${channel.name} received update:`, data);
-
-          setUpdateCount((prev) => prev + 1);
-          setLastUpdate(new Date().toISOString());
-
-          // Call optional update handler
-          if (onUpdate) {
-            onUpdate(data);
+          if (data.type === 'RSC_START') {
+            console.log(`[ReactiveSubscribe] Starting RSC stream`);
+            rscChunks = [];
+            isReceivingRSC = true;
+            return;
           }
 
-          // Trigger RSC refetch using soft navigation
-          // Navigate to same URL with cache-busting param, then navigate back
-          startTransition(() => {
-            const currentUrl = new URL(window.location.href);
-            const tempUrl = new URL(window.location.href);
-            tempUrl.searchParams.set('_rsc_refetch', Date.now().toString());
+          if (data.type === 'RSC_CHUNK') {
+            if (isReceivingRSC) {
+              rscChunks.push(data.chunk);
+            }
+            return;
+          }
 
-            // Push temp URL (triggers RSC refetch)
-            window.history.pushState({}, '', tempUrl.toString());
+          if (data.type === 'RSC_END') {
+            console.log(`[ReactiveSubscribe] RSC stream complete, processing...`);
+            isReceivingRSC = false;
 
-            // Immediately replace back to original URL
-            // This causes React to refetch RSC payload
-            setTimeout(() => {
-              window.history.replaceState({}, '', currentUrl.toString());
-            }, 0);
-          });
+            try {
+              // Decode base64 chunks back to text (browser-compatible)
+              const rscPayload = rscChunks
+                .map((chunk) => atob(chunk))
+                .join('');
+
+              console.log('[ReactiveSubscribe] RSC payload received:', rscPayload.slice(0, 200));
+
+              // Create ReadableStream from RSC payload
+              const rscStream = new ReadableStream({
+                start(controller) {
+                  controller.enqueue(new TextEncoder().encode(rscPayload));
+                  controller.close();
+                },
+              });
+
+              // Use React's createFromReadableStream to parse RSC payload
+              const component = await createFromReadableStream(rscStream, {
+                callServer: async (id: string, args: any[]) => {
+                  console.log('[ReactiveSubscribe] Server action called:', id, args);
+                  // TODO: Implement server action handler
+                  throw new Error('Server actions not yet implemented');
+                },
+              });
+
+              console.log('[ReactiveSubscribe] Component created from RSC stream:', component);
+
+              setRenderedComponent(component);
+              setUpdateCount((prev) => prev + 1);
+              setLastUpdate(new Date().toISOString());
+            } catch (err) {
+              console.error('[ReactiveSubscribe] Error parsing RSC stream:', err);
+              setError(String(err));
+            }
+
+            rscChunks = [];
+            return;
+          }
+
+          if (data.type === 'RSC_ERROR') {
+            console.error(`[ReactiveSubscribe] RSC error:`, data.error);
+            setError(data.error);
+            isReceivingRSC = false;
+            rscChunks = [];
+            return;
+          }
         } catch (err) {
-          console.error(`[ReactiveSubscribe] Error parsing data:`, err);
+          console.error(`[ReactiveSubscribe] Error parsing event:`, err);
+          setError(String(err));
         }
       };
 
@@ -98,6 +143,7 @@ export function ReactiveSubscribe<TData, TScope>({
     } catch (err) {
       console.error(`[ReactiveSubscribe] Error creating EventSource:`, err);
       setIsConnected(false);
+      setError(String(err));
     }
 
     return () => {
@@ -106,22 +152,31 @@ export function ReactiveSubscribe<TData, TScope>({
         eventSource.close();
       }
     };
-  }, [channel.name, JSON.stringify(scope), onUpdate]);
-
-  if (!showDebug) return null;
+  }, [channel.name, JSON.stringify(scope), componentPath]);
 
   return (
-    <div className="mb-2 text-xs flex items-center gap-2">
-      <span
-        className={`inline-block w-2 h-2 rounded-full ${
-          isConnected ? 'bg-green-500' : 'bg-red-500'
-        }`}
-      />
-      <span>
-        {channel.name}: {isConnected ? 'Connected' : 'Disconnected'} | Updates: {updateCount}
-        {lastUpdate && ` | Last: ${new Date(lastUpdate).toLocaleTimeString()}`}
-      </span>
-      {isPending && <span className="text-yellow-600">⟳ Refreshing...</span>}
+    <div>
+      {showDebug && (
+        <div className="mb-2 text-xs flex items-center gap-2">
+          <span
+            className={`inline-block w-2 h-2 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`}
+          />
+          <span>
+            {channel.name}: {isConnected ? 'Connected' : 'Disconnected'} | Updates: {updateCount}
+            {lastUpdate && ` | Last: ${new Date(lastUpdate).toLocaleTimeString()}`}
+          </span>
+          {error && <span className="text-red-600">Error: {error}</span>}
+        </div>
+      )}
+
+      {/* Render the RSC component */}
+      {renderedComponent && (
+        <Suspense fallback={<div className="text-xs text-gray-500">Loading component...</div>}>
+          {renderedComponent}
+        </Suspense>
+      )}
     </div>
   );
 }

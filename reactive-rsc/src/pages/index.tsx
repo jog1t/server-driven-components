@@ -6,8 +6,9 @@ import { ServerInfo } from '../components/server-info';
 import { DataFetch } from '../components/data-fetch';
 import { ChannelClock } from '../components/channel-clock';
 import { ChannelCounter } from '../components/channel-counter';
-import { ReactiveClock } from '../components/reactive-clock';
-import { ReactiveCounter } from '../components/reactive-counter';
+import { ReactiveSubscribe } from '../components/reactive-subscribe';
+import { clockChannel } from '../channels/clock';
+import { counterChannel } from '../channels/counter';
 
 // Import channels to register them
 import '../channels/clock';
@@ -135,22 +136,32 @@ onChannel(clockChannel, {
       </div>
 
       <h2 className="text-2xl font-bold mt-6 mb-3">
-        ⚡ TRUE Reactive Server Components (RSC Refetch)
+        ⚡ TRUE Reactive Server Components (RSC Streaming!)
       </h2>
 
       <div className="border-purple-400 -mx-4 mt-4 rounded-sm border border-dashed p-4 bg-purple-50">
-        <h3 className="text-sm font-bold mb-3">Server Components That Re-Render on Updates</h3>
+        <h3 className="text-sm font-bold mb-3">
+          Server Components That Stream RSC Payloads Over SSE
+        </h3>
         <p className="text-sm mb-4">
           These are <strong>actual server components</strong> (not client). When channels
-          broadcast, <code>ReactiveSubscribe</code> triggers a soft navigation that causes
-          React to refetch the RSC payload <strong>without reloading the page</strong>. The server components re-render on the server, sending new
-          RSC payload to the client.
+          broadcast, the server <strong>renders the component to RSC payload</strong> and streams
+          it directly over SSE. React consumes the stream and updates the component tree.{' '}
+          <strong>No navigation, no refetch - just pure RSC streaming!</strong>
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Reactive server components */}
-          <ReactiveClock interval={1000} />
-          <ReactiveCounter increment={1} interval={2000} />
+          {/* RSC Streaming reactive components */}
+          <ReactiveSubscribe
+            channel={clockChannel}
+            scope={{ interval: 1000 }}
+            componentPath="components/reactive-clock"
+          />
+          <ReactiveSubscribe
+            channel={counterChannel}
+            scope={{ increment: 1, interval: 2000 }}
+            componentPath="components/reactive-counter"
+          />
         </div>
 
         <div className="mt-4 p-3 bg-white rounded border border-purple-300">
@@ -160,23 +171,25 @@ onChannel(clockChannel, {
           <ol className="text-xs text-gray-700 list-decimal list-inside mt-2 space-y-1">
             <li>Channel broadcasts update on server</li>
             <li>
-              Client receives SSE event via <code>ReactiveSubscribe</code>
+              Server renders component with new data to <strong>RSC payload</strong> (React Flight
+              format)
             </li>
             <li>
-              Soft navigation with cache-busting URL triggers RSC refetch (no page reload!)
+              RSC payload chunks streamed over SSE to <code>ReactiveSubscribe</code>
             </li>
-            <li>Server components re-render on the server</li>
-            <li>New RSC payload sent to client</li>
-            <li>React replaces component tree - smooth update!</li>
+            <li>
+              Client uses <code>createFromReadableStream</code> to parse RSC payload
+            </li>
+            <li>React automatically updates component tree - smooth and efficient!</li>
           </ol>
         </div>
 
         <div className="mt-3 p-3 bg-purple-100 rounded border border-purple-200">
           <p className="text-xs text-purple-800">
-            <strong>🎯 This is TRUE reactive server components!</strong> The components themselves
-            are server components. They re-render on the server when data changes, just like a
-            traditional server-rendered app, but with smooth client-side updates via RSC refetch -
-            NO full page reloads! Best of both worlds: server rendering + client-side smoothness.
+            <strong>🚀 This is THE breakthrough!</strong> We're streaming RSC payloads directly
+            over SSE. Server components render on the server, their output is serialized as RSC
+            payload, streamed to the client, and React patches the tree. No navigation tricks, no
+            refetch - just pure React Server Components streaming. This is the real deal!
           </p>
         </div>
       </div>
