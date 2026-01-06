@@ -4,6 +4,8 @@
  * Displays an auto-incrementing counter using the counter channel.
  */
 
+'use client';
+
 import { Subscribe } from './subscribe';
 import { counterChannel } from '../channels/counter';
 

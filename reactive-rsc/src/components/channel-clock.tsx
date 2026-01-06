@@ -4,6 +4,8 @@
  * Displays a live clock using the clock channel.
  */
 
+'use client';
+
 import { Subscribe } from './subscribe';
 import { clockChannel } from '../channels/clock';
 
