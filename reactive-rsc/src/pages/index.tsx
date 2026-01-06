@@ -6,6 +6,8 @@ import { ServerInfo } from '../components/server-info';
 import { DataFetch } from '../components/data-fetch';
 import { ChannelClock } from '../components/channel-clock';
 import { ChannelCounter } from '../components/channel-counter';
+import { ReactiveClock } from '../components/reactive-clock';
+import { ReactiveCounter } from '../components/reactive-counter';
 
 // Import channels to register them
 import '../channels/clock';
@@ -128,6 +130,53 @@ onChannel(clockChannel, {
             <strong>🎯 The breakthrough:</strong> By separating reactive state from component
             lifecycle, we embrace RSC's design instead of fighting it. Channels solve the
             fundamental mismatch between stateless RSC and stateful reactivity!
+          </p>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold mt-6 mb-3">
+        ⚡ TRUE Reactive Server Components (RSC Refetch)
+      </h2>
+
+      <div className="border-purple-400 -mx-4 mt-4 rounded-sm border border-dashed p-4 bg-purple-50">
+        <h3 className="text-sm font-bold mb-3">Server Components That Re-Render on Updates</h3>
+        <p className="text-sm mb-4">
+          These are <strong>actual server components</strong> (not client). When channels
+          broadcast, <code>ReactiveSubscribe</code> triggers <code>router.reload()</code>, causing
+          a full RSC payload refetch. The server components re-render on the server, sending new
+          RSC payload to the client.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Reactive server components */}
+          <ReactiveClock interval={1000} />
+          <ReactiveCounter increment={1} interval={2000} />
+        </div>
+
+        <div className="mt-4 p-3 bg-white rounded border border-purple-300">
+          <p className="text-xs text-purple-900">
+            <strong>How it works:</strong>
+          </p>
+          <ol className="text-xs text-gray-700 list-decimal list-inside mt-2 space-y-1">
+            <li>Channel broadcasts update on server</li>
+            <li>
+              Client receives SSE event via <code>ReactiveSubscribe</code>
+            </li>
+            <li>
+              <code>router.reload()</code> triggers full RSC refetch
+            </li>
+            <li>Server components re-render on the server</li>
+            <li>New RSC payload sent to client</li>
+            <li>React updates the DOM</li>
+          </ol>
+        </div>
+
+        <div className="mt-3 p-3 bg-purple-100 rounded border border-purple-200">
+          <p className="text-xs text-purple-800">
+            <strong>🎯 This is TRUE reactive server components!</strong> The components themselves
+            are server components. They re-render on the server when data changes, just like a
+            traditional server-rendered app, but with the performance benefits of RSC + SSE instead
+            of full page reloads.
           </p>
         </div>
       </div>
