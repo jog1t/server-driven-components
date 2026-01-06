@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import type { ChannelDefinition } from '../lib/channels/types';
 
 interface ReactiveSubscribeProps<TData, TScope> {
@@ -32,7 +32,7 @@ export function ReactiveSubscribe<TData, TScope>({
   const [isConnected, setIsConnected] = useState(false);
   const [updateCount, setUpdateCount] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -70,9 +70,22 @@ export function ReactiveSubscribe<TData, TScope>({
             onUpdate(data);
           }
 
-          // Trigger page reload - this re-renders server components!
-          setIsRefreshing(true);
-          window.location.reload();
+          // Trigger RSC refetch using soft navigation
+          // Navigate to same URL with cache-busting param, then navigate back
+          startTransition(() => {
+            const currentUrl = new URL(window.location.href);
+            const tempUrl = new URL(window.location.href);
+            tempUrl.searchParams.set('_rsc_refetch', Date.now().toString());
+
+            // Push temp URL (triggers RSC refetch)
+            window.history.pushState({}, '', tempUrl.toString());
+
+            // Immediately replace back to original URL
+            // This causes React to refetch RSC payload
+            setTimeout(() => {
+              window.history.replaceState({}, '', currentUrl.toString());
+            }, 0);
+          });
         } catch (err) {
           console.error(`[ReactiveSubscribe] Error parsing data:`, err);
         }
@@ -108,7 +121,7 @@ export function ReactiveSubscribe<TData, TScope>({
         {channel.name}: {isConnected ? 'Connected' : 'Disconnected'} | Updates: {updateCount}
         {lastUpdate && ` | Last: ${new Date(lastUpdate).toLocaleTimeString()}`}
       </span>
-      {isRefreshing && <span className="text-yellow-600">⟳ Refreshing...</span>}
+      {isPending && <span className="text-yellow-600">⟳ Refreshing...</span>}
     </div>
   );
 }

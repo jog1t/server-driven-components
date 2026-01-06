@@ -142,8 +142,8 @@ onChannel(clockChannel, {
         <h3 className="text-sm font-bold mb-3">Server Components That Re-Render on Updates</h3>
         <p className="text-sm mb-4">
           These are <strong>actual server components</strong> (not client). When channels
-          broadcast, <code>ReactiveSubscribe</code> triggers <code>router.reload()</code>, causing
-          a full RSC payload refetch. The server components re-render on the server, sending new
+          broadcast, <code>ReactiveSubscribe</code> triggers a soft navigation that causes
+          React to refetch the RSC payload <strong>without reloading the page</strong>. The server components re-render on the server, sending new
           RSC payload to the client.
         </p>
 
@@ -163,11 +163,11 @@ onChannel(clockChannel, {
               Client receives SSE event via <code>ReactiveSubscribe</code>
             </li>
             <li>
-              <code>router.reload()</code> triggers full RSC refetch
+              Soft navigation with cache-busting URL triggers RSC refetch (no page reload!)
             </li>
             <li>Server components re-render on the server</li>
             <li>New RSC payload sent to client</li>
-            <li>React updates the DOM</li>
+            <li>React replaces component tree - smooth update!</li>
           </ol>
         </div>
 
@@ -175,8 +175,8 @@ onChannel(clockChannel, {
           <p className="text-xs text-purple-800">
             <strong>🎯 This is TRUE reactive server components!</strong> The components themselves
             are server components. They re-render on the server when data changes, just like a
-            traditional server-rendered app, but with the performance benefits of RSC + SSE instead
-            of full page reloads.
+            traditional server-rendered app, but with smooth client-side updates via RSC refetch -
+            NO full page reloads! Best of both worlds: server rendering + client-side smoothness.
           </p>
         </div>
       </div>
