@@ -43,7 +43,7 @@ export const serverTime = signal(Date.now());
 setInterval(() => serverTime.set(Date.now()), 1000);
 
 // components/Clock.tsx
-import { useServerState } from 'reactive-rsc';
+import { useServerState } from 'kawa';
 import { serverTime } from '../signals/server-time';
 
 export default function Clock() {
@@ -64,7 +64,7 @@ Create a component-local reactive stream with inline state management.
 
 **Example:**
 ```typescript
-import { useReactiveStream } from 'reactive-rsc';
+import { useReactiveStream } from 'kawa';
 
 export default function Timer() {
   const time = useReactiveStream(

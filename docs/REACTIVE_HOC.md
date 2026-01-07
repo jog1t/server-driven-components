@@ -172,8 +172,8 @@ import Clock from './components/clock'
 
 ### Location
 
-- **File**: `reactive-rsc/src/lib/reactive/define-reactive.tsx`
-- **Export**: `reactive-rsc/src/lib/reactive/index.ts`
+- **File**: `kawa/src/lib/reactive/define-reactive.tsx`
+- **Export**: `kawa/src/lib/reactive/index.ts`
 
 ### Type Signature
 
@@ -256,7 +256,7 @@ Possible future improvements:
 
 ## Related Documentation
 
-- [REACTIVE_API.md](reactive-rsc/REACTIVE_API.md) - useReactive hook API
+- [REACTIVE_API.md](kawa/REACTIVE_API.md) - useReactive hook API
 - [API_DESIGN_PROPOSAL.md](API_DESIGN_PROPOSAL.md) - Original design explorations
 - [RESEARCH-use-reactive-directive.md](RESEARCH-use-reactive-directive.md) - Why we didn't use directives
 

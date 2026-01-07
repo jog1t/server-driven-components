@@ -371,7 +371,7 @@ Server emits event every second → Client refetches → Component re-renders
 
 #### Key Files Created
 ```
-reactive-rsc/
+kawa/
 ├── src/components/
 │   ├── counter.tsx              ✅ Client component
 │   ├── toggle.tsx               ✅ Client component
@@ -451,7 +451,7 @@ export async function ReactiveComponent() {
 
 #### Key Files Created/Modified
 ```
-reactive-rsc/
+kawa/
 ├── src/lib/
 │   ├── server-state-manager.ts      ✅ NEW - State management
 │   └── server-hooks.ts              ✅ NEW - Hook-like APIs
@@ -551,7 +551,7 @@ export async function MyClock({ _reactiveId }: { _reactiveId?: string }) {
 
 #### Key Files Created
 ```
-reactive-rsc/
+kawa/
 ├── src/components/
 │   ├── reactive.tsx               ✅ NEW - Auto-ID wrapper
 │   ├── auto-reactive-clock.tsx    ✅ NEW - Demo using new API
@@ -660,7 +660,7 @@ export function MyClock() {
 
 #### Key Files Modified
 ```
-reactive-rsc/
+kawa/
 ├── src/lib/
 │   └── server-hooks.ts              ✅ REWRITTEN - Synchronous hooks
 ├── src/components/

@@ -1,6 +1,8 @@
-# reactive-rsc
+# kawa
 
 Simple, type-safe reactivity for React Server Components with automatic SSE streaming.
+
+> **About the name:** "Kawa" (川) means "river" in Japanese, representing the continuous flow of reactive data streaming from server to client. It's also "coffee" in Polish - because developers love coffee! ☕
 
 ## Features
 
@@ -14,17 +16,17 @@ Simple, type-safe reactivity for React Server Components with automatic SSE stre
 ## Installation
 
 ```bash
-pnpm add reactive-rsc
+pnpm add kawa
 # or
-npm install reactive-rsc
+npm install kawa
 # or
-yarn add reactive-rsc
+yarn add kawa
 ```
 
 ## Quick Start
 
 ```tsx
-import { useReactive } from 'reactive-rsc';
+import { useReactive } from 'kawa';
 
 export default function Clock({ interval = 1000 }) {
   const time = useReactive(Date.now(), (stream) => {
@@ -97,7 +99,7 @@ Signals are shared reactive primitives that multiple components can subscribe to
 Create a writable signal.
 
 ```tsx
-import { signal } from 'reactive-rsc';
+import { signal } from 'kawa';
 
 export const serverTime = signal(Date.now());
 
@@ -112,7 +114,7 @@ setInterval(() => {
 Create a derived signal (computed from other signals).
 
 ```tsx
-import { signal, computed } from 'reactive-rsc';
+import { signal, computed } from 'kawa';
 
 const firstName = signal('John');
 const lastName = signal('Doe');
@@ -189,6 +191,16 @@ export default function Notifications() {
   return <ul>{items.map(n => <li>{n}</li>)}</ul>;
 }
 ```
+
+## Contributing
+
+We use [pkg.pr.new](https://pkg.pr.new) for testing changes in pull requests. Every PR automatically publishes a preview package that you can install and test:
+
+```bash
+pnpm add https://pkg.pr.new/kawa@<pr-number>
+```
+
+This makes it easy to test contributions before they're merged!
 
 ## License
 

@@ -30,7 +30,7 @@ This document explores the feasibility of implementing a `'use reactive'` direct
 
 ### Current Implementation
 
-The reactive-rsc project currently uses a **hook-based approach** (API Design #3 + #7):
+The kawa project currently uses a **hook-based approach** (API Design #3 + #7):
 
 ```tsx
 // Current approach - explicit hook usage
@@ -794,7 +794,7 @@ If the team strongly prefers the directive approach despite the trade-offs, here
 
 - `/home/user/server-driven-components/API_DESIGN_PROPOSAL.md` - Original API design exploration (Design #1: Directive-based)
 - `/home/user/server-driven-components/REACTIVE_API.md` - Current useReactive API documentation
-- `/home/user/server-driven-components/reactive-rsc/src/lib/reactive/` - Current implementation
+- `/home/user/server-driven-components/kawa/src/lib/reactive/` - Current implementation
 
 ---
 

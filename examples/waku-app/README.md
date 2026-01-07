@@ -1,6 +1,6 @@
 # Waku Example - Reactive Server Components
 
-Example application demonstrating `reactive-rsc` with [Waku](https://waku.gg/).
+Example application demonstrating `kawa` with [Waku](https://waku.gg/).
 
 ## Features
 
@@ -64,7 +64,7 @@ src/
 
 ## Learn More
 
-- [reactive-rsc documentation](../../packages/reactive-rsc/README.md)
+- [kawa documentation](../../packages/kawa/README.md)
 - [Waku documentation](https://waku.gg/)
 - [Design documentation](../../docs/)
 

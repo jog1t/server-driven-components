@@ -6,7 +6,7 @@
  * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'reactive-rsc';
+import { useReactive } from 'kawa';
 import { reactive } from './reactive-hoc';
 import { serverTime } from '../lib/signals/server-time';
 
