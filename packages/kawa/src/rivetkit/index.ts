@@ -20,7 +20,12 @@
  */
 
 // Core actors
-export { reactiveStateActor } from './actors/reactiveState';
+export {
+  reactiveStateActor,
+  createReactiveStateActor,
+  type ReactiveStateActorHooks,
+  type ActionHook,
+} from './actors/reactiveState';
 
 // Registry
 export { reactiveRegistry } from './registry';

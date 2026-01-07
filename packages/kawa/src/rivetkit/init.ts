@@ -14,11 +14,6 @@ export interface ReactiveBackend {
   registry: Registry<any>;
   actorName: string;
   actorId: string;
-  /**
-   * Optional function to get user context for actor calls
-   * This allows you to pass auth/user data from components to actors
-   */
-  getContext?: () => any | Promise<any>;
 }
 
 let globalBackend: ReactiveBackend | null = null;
@@ -50,23 +45,11 @@ export function initReactiveBackend(options: {
   actorName?: string;
   actorId?: string;
   global?: boolean;
-  /**
-   * Optional function to get user context for actor calls
-   * This allows you to pass auth/user data from components to actors
-   *
-   * @example
-   * initReactiveBackend({
-   *   registry,
-   *   getContext: () => ({ userId: '123', role: 'admin' })
-   * })
-   */
-  getContext?: () => any | Promise<any>;
 }): ReactiveBackend {
   const backend: ReactiveBackend = {
     registry: options.registry,
     actorName: options.actorName || 'reactiveState',
     actorId: options.actorId || 'global',
-    getContext: options.getContext,
   };
 
   // Set as global backend by default
@@ -115,12 +98,7 @@ export async function getReactiveActor(backend: ReactiveBackend) {
  * Sync a signal to RivetKit actor
  * (Internal - used by signal implementation)
  */
-export async function syncSignalToRivet(
-  key: string,
-  value: any,
-  backend?: ReactiveBackend,
-  context?: any
-) {
+export async function syncSignalToRivet(key: string, value: any, backend?: ReactiveBackend) {
   const targetBackend = backend || globalBackend;
 
   if (!targetBackend) {
@@ -130,16 +108,7 @@ export async function syncSignalToRivet(
 
   try {
     const actor = await getReactiveActor(targetBackend);
-
-    // Get context from backend or use provided context
-    const userContext = context || (await targetBackend.getContext?.());
-
-    // Call actor with context if available
-    if (userContext) {
-      await actor.call('setSignal', { key, value }, { user: userContext });
-    } else {
-      await actor.call('setSignal', { key, value });
-    }
+    await actor.call('setSignal', { key, value });
   } catch (error) {
     console.error(`[reactive-rsc] Failed to sync signal ${key}:`, error);
   }
@@ -149,11 +118,7 @@ export async function syncSignalToRivet(
  * Load a signal from RivetKit actor
  * (Internal - used by signal implementation)
  */
-export async function loadSignalFromRivet(
-  key: string,
-  backend?: ReactiveBackend,
-  context?: any
-): Promise<any | undefined> {
+export async function loadSignalFromRivet(key: string, backend?: ReactiveBackend): Promise<any | undefined> {
   const targetBackend = backend || globalBackend;
 
   if (!targetBackend) {
@@ -162,15 +127,7 @@ export async function loadSignalFromRivet(
 
   try {
     const actor = await getReactiveActor(targetBackend);
-
-    // Get context from backend or use provided context
-    const userContext = context || (await targetBackend.getContext?.());
-
-    // Call actor with context if available
-    const result = userContext
-      ? await actor.call('getSignal', { key }, { user: userContext })
-      : await actor.call('getSignal', { key });
-
+    const result = await actor.call('getSignal', { key });
     return result.exists ? result.value : undefined;
   } catch (error) {
     console.error(`[reactive-rsc] Failed to load signal ${key}:`, error);
