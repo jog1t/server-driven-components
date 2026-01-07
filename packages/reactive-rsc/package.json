@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./rivet": {
+      "types": "./dist/rivet/index.d.ts",
+      "import": "./dist/rivet/index.js"
     }
   },
   "files": [
@@ -27,7 +31,13 @@
     "sse"
   ],
   "peerDependencies": {
-    "react": ">=19.0.0"
+    "react": ">=19.0.0",
+    "rivetkit": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "rivetkit": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.2.7",

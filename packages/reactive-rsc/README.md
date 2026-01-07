@@ -190,6 +190,43 @@ export default function Notifications() {
 }
 ```
 
+## Backends
+
+### Memory Backend (Default)
+
+The default implementation stores state in-memory. Simple and works out of the box, but:
+- ❌ State lost on server restart
+- ❌ Can't share state across servers
+- ✅ Perfect for development and simple use cases
+
+### RivetKit Backend (Optional)
+
+For production apps that need persistence and multi-server coordination:
+
+```bash
+pnpm add rivetkit
+```
+
+```typescript
+// src/reactive.ts
+import { createReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
+
+export const { signal, useReactive } = createReactiveBackend({
+  registry: reactiveRegistry
+});
+
+// Start the registry
+reactiveRegistry.start({ defaultServerPort: 3001 });
+```
+
+**Benefits:**
+- ✅ State persists across restarts
+- ✅ Multi-server coordination
+- ✅ File System / Redis / Postgres storage
+- ✅ Horizontal scaling
+
+[Learn more about the RivetKit backend →](./src/rivet/README.md)
+
 ## License
 
 MIT
