@@ -5,7 +5,7 @@
  * Multiple instances of this component share the same signal.
  */
 
-import { useReactive } from '../lib/reactive';
+import { useReactive } from 'reactive-rsc';
 import { serverTime } from '../lib/signals/server-time';
 
 interface DemoSharedTimeProps {

@@ -5,7 +5,7 @@
  * Demonstrates signal reuse across multiple components.
  */
 
-import { signal } from '../reactive';
+import { signal } from 'reactive-rsc';
 
 // Create shared signal for server time
 export const serverTime = signal(Date.now());

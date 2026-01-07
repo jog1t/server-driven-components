@@ -1,0 +1,23 @@
+{
+  "name": "server-driven-components",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reactive Server Components with SSE streaming",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter waku-example dev",
+    "build": "pnpm -r build",
+    "build:lib": "pnpm --filter reactive-rsc build",
+    "build:example": "pnpm --filter waku-example build"
+  },
+  "keywords": [
+    "react",
+    "server-components",
+    "reactive",
+    "streaming",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {}
+}
