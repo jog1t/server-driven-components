@@ -14,7 +14,7 @@ Successfully migrated from custom signal implementation to `@preact/signals-core
 
 ### Files Modified
 
-#### 1. `packages/reactive-rsc/src/signal.ts`
+#### 1. `packages/kawa/src/signal.ts`
 **Before:** ~86 lines of custom signal implementation
 **After:** Wrapper around @preact/signals-core with backward-compatible API
 
@@ -23,7 +23,7 @@ Key changes:
 - Added `wrapSignal()` helper to maintain our `subscribe()` API
 - Computed signals now have **full auto-tracking** (previously just snapshots)
 
-#### 2. `packages/reactive-rsc/src/index.ts`
+#### 2. `packages/kawa/src/index.ts`
 Added exports for useful Preact utilities:
 ```typescript
 export { effect, batch, untracked } from '@preact/signals-core';
@@ -34,10 +34,10 @@ These provide additional capabilities:
 - `batch()` - Group multiple updates to minimize re-renders
 - `untracked()` - Read signal values without establishing dependencies
 
-#### 3. `packages/reactive-rsc/src/runtime.ts`
+#### 3. `packages/kawa/src/runtime.ts`
 Updated documentation to reflect that subscriptions now use Preact's effect system under the hood.
 
-#### 4. `packages/reactive-rsc/package.json`
+#### 4. `packages/kawa/package.json`
 Added dependency on `@preact/signals-core`
 
 ## Benefits Gained
@@ -75,7 +75,7 @@ export function computed<T>(compute: () => T): Signal<T> {
 ### 4. ✅ Enhanced Capabilities
 Users can now leverage additional features:
 ```typescript
-import { signal, computed, effect, batch } from 'reactive-rsc';
+import { signal, computed, effect, batch } from 'kawa';
 
 const count = signal(0);
 const double = computed(() => count.value * 2);
@@ -159,7 +159,7 @@ With @preact/signals-core integrated, we can now:
 
 ## Conclusion
 
-This migration represents a significant improvement to the reactive-rsc library:
+This migration represents a significant improvement to the kawa library:
 - ✅ Fixes critical limitation (computed auto-tracking)
 - ✅ Adds valuable features (effects, batching)
 - ✅ Reduces maintenance burden

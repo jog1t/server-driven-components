@@ -1,11 +1,11 @@
 # Signal Library Research
 
 **Date:** January 7, 2026
-**Purpose:** Research existing signal libraries to potentially simplify our reactive-rsc implementation
+**Purpose:** Research existing signal libraries to potentially simplify our kawa implementation
 
 ## Current Implementation Analysis
 
-Our current implementation (`packages/reactive-rsc/src/signal.ts`) provides:
+Our current implementation (`packages/kawa/src/signal.ts`) provides:
 
 - **Basic Signals**: Writable reactive values with `get`, `set`, `update`, and `subscribe` methods
 - **Computed Signals**: Derived values (currently incomplete - just snapshots, not truly reactive)
@@ -228,7 +228,7 @@ pnpm add @preact/signals-core
 
 ### Phase 2: Update Implementation
 
-Replace `packages/reactive-rsc/src/signal.ts` internals:
+Replace `packages/kawa/src/signal.ts` internals:
 
 ```typescript
 // Instead of custom implementation
@@ -304,7 +304,7 @@ The benefits far outweigh the costs:
 - ✅ Minimal size impact (1.6kB)
 - ✅ Better long-term sustainability
 
-This allows the reactive-rsc library to focus on its unique value proposition (RSC streaming integration) rather than reinventing reactive primitives.
+This allows the kawa library to focus on its unique value proposition (RSC streaming integration) rather than reinventing reactive primitives.
 
 ---
 
