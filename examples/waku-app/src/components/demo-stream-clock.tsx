@@ -1,27 +1,28 @@
 /**
- * Demo Stream Clock - Using useReactiveStream
+ * Demo Stream Clock - Using createStream
  *
- * Demonstrates the new useReactiveStream hook for component-local reactive state.
+ * Demonstrates the createStream function for component-local reactive state.
  * This is the recommended approach for creating timers, intervals, or any
  * component-specific reactive streams.
  */
 
-import { useReactiveStream } from 'kawa';
+import { signal, observe, createStream } from 'kawa';
 
 interface DemoStreamClockProps {
   interval?: number;
-  _reactiveData?: number;
 }
 
-export default function DemoStreamClock({ interval = 1000, _reactiveData }: DemoStreamClockProps) {
-  // Use the new useReactiveStream hook for component-local reactive state
-  const time = useReactiveStream(
-    _reactiveData ?? Date.now(),
-    (stream) => {
+export default function DemoStreamClock({ interval = 1000 }: DemoStreamClockProps) {
+  // Create a signal for the time
+  const time = signal(Date.now());
+
+  // Use createStream to set up the interval that modifies the signal
+  createStream(
+    () => {
       console.log(`[DemoStreamClock] Starting clock with interval: ${interval}ms`);
 
       const id = setInterval(() => {
-        stream.next(Date.now());
+        time.value = Date.now();
       }, interval);
 
       return () => {
@@ -37,11 +38,11 @@ export default function DemoStreamClock({ interval = 1000, _reactiveData }: Demo
   return (
     <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded border border-purple-300">
       <h4 className="text-lg font-bold mb-3 text-purple-800">
-        🕐 Stream Clock (useReactiveStream)
+        🕐 Stream Clock (createStream)
       </h4>
 
       <div className="text-4xl font-bold text-purple-900 my-4 font-mono">
-        {new Date(time).toLocaleTimeString()}
+        {new Date(observe(time)).toLocaleTimeString()}
       </div>
 
       <div className="text-sm text-gray-600">
@@ -51,7 +52,7 @@ export default function DemoStreamClock({ interval = 1000, _reactiveData }: Demo
       <div className="mt-3 p-2 bg-white/50 rounded text-xs text-purple-700">
         ⚡ <strong>Component-local reactive stream</strong>
         <br />
-        Uses useReactiveStream() for inline state management
+        Uses createStream() for inline state management
         <br />
         Updates every {interval}ms via RSC streaming over SSE
       </div>

@@ -22,27 +22,27 @@ export default async function HomePage() {
       <title>Reactive Server Components Demo</title>
       <h1 className="text-4xl font-bold tracking-tight mb-2">Reactive Server Components</h1>
       <p className="text-gray-600 mb-6">
-        React Server Components + SSE streaming with the new <code>useReactive</code> hook
+        React Server Components + SSE streaming with <code>createStream</code> and <code>observe</code>
       </p>
 
       <div className="mb-4 p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded border-2 border-purple-300">
-        <h2 className="text-xl font-bold mb-2">🎉 v0.5: useReactive Hook!</h2>
+        <h2 className="text-xl font-bold mb-2">🎉 v0.6: Simplified API!</h2>
         <p className="text-sm mb-2">
-          <strong>Maximum simplicity!</strong> React-like syntax for reactive server components:
+          <strong>Maximum simplicity!</strong> Clean, non-hooky syntax for reactive server components:
         </p>
         <pre className="bg-white p-3 rounded text-xs font-mono overflow-x-auto">
-          {`// Just use the hook + reactive() HOC!
-import { useReactive, reactive } from './lib/reactive'
+          {`// Create signals and streams + reactive() HOC!
+import { signal, observe, createStream, reactive } from 'kawa'
 
 function Clock({ interval = 1000 }) {
-  const time = useReactive(Date.now(), (stream) => {
-    const id = setInterval(() => {
-      stream.next(Date.now())
-    }, interval)
+  const time = signal(Date.now())
+
+  createStream(() => {
+    const id = setInterval(() => time.value = Date.now(), interval)
     return () => clearInterval(id)
   }, [interval])  // deps array = automatic deduplication!
 
-  return <div>{new Date(time).toLocaleTimeString()}</div>
+  return <div>{new Date(observe(time)).toLocaleTimeString()}</div>
 }
 
 export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
@@ -50,7 +50,7 @@ export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
         <div className="mt-3 p-2 bg-purple-100 rounded text-xs">
           <strong>Key features:</strong>
           <ul className="list-disc list-inside mt-1 space-y-1">
-            <li>Familiar React-like syntax (useState + useEffect pattern)</li>
+            <li>Clean, non-hooky API (no ESLint warnings in server components!)</li>
             <li>Auto-deduplication via deps array</li>
             <li>Full TypeScript support with inference</li>
             <li>Supports shared signals for global state</li>
@@ -88,7 +88,7 @@ export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
       <DataFetch />
 
       <h2 className="text-2xl font-bold mt-6 mb-3">
-        ⚡ Reactive Server Components (useReactive)
+        ⚡ Reactive Server Components (createStream + observe)
       </h2>
 
       <div className="border-purple-400 -mx-4 mt-4 rounded-sm border border-dashed p-4 bg-purple-50">
@@ -96,8 +96,8 @@ export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
           Server Components That Stream Updates Over SSE
         </h3>
         <p className="text-sm mb-4">
-          These are <strong>actual server components</strong> (not client). They use the{' '}
-          <code>useReactive</code> hook to create reactive state. When state updates, the server
+          These are <strong>actual server components</strong> (not client). They use{' '}
+          <code>createStream</code> and <code>observe</code> to create reactive state. When state updates, the server
           renders the component to an <strong>RSC payload</strong> and streams it over SSE. React
           automatically patches the component tree.{' '}
           <strong>No navigation, no refetch - just pure streaming!</strong>
@@ -108,9 +108,9 @@ export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
             <strong>How it works:</strong>
           </p>
           <ol className="text-xs text-gray-700 list-decimal list-inside space-y-1">
-            <li>Component calls <code>useReactive(initialValue, streamFn, deps)</code></li>
+            <li>Component calls <code>createStream(streamFn, deps)</code></li>
             <li>Runtime registers stream handler with automatic deduplication</li>
-            <li>Stream function produces updates on the server</li>
+            <li>Stream function modifies signals on the server</li>
             <li>Server renders component to RSC payload (React Flight format)</li>
             <li>RSC payload streamed over SSE to client wrapper</li>
             <li>Client parses with <code>createFromReadableStream</code></li>
@@ -121,8 +121,8 @@ export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
         <div className="mt-3 p-3 bg-purple-100 rounded border border-purple-200">
           <p className="text-xs text-purple-800">
             <strong>🚀 The DX breakthrough!</strong> No more manual channel definitions, no string
-            paths, no registration boilerplate. Just use <code>useReactive</code> in your server
-            component and it works. Familiar React patterns, maximum simplicity!
+            paths, no registration boilerplate. Just use <code>createStream</code> and <code>observe</code> in your server
+            component and it works. Clean, non-hooky API with maximum simplicity!
           </p>
         </div>
 

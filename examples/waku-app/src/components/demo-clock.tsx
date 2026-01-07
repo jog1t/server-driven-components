@@ -1,26 +1,26 @@
 /**
  * Demo Clock - Reactive Server Component
  *
- * Demonstrates useReactive with interval-based updates.
+ * Demonstrates createStream with interval-based updates.
  * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'kawa';
+import { signal, observe, createStream } from 'kawa';
 import { reactive } from './reactive-hoc';
 
 interface DemoClockProps {
   interval?: number;
-  _reactiveData?: number;
 }
 
-function DemoClock({ interval = 1000, _reactiveData }: DemoClockProps) {
-  const time = useReactive(
-    _reactiveData ?? Date.now(),
-    (stream) => {
+function DemoClock({ interval = 1000 }: DemoClockProps) {
+  const time = signal(Date.now());
+
+  createStream(
+    () => {
       console.log(`[DemoClock] Starting clock with interval: ${interval}ms`);
 
       const id = setInterval(() => {
-        stream.next(Date.now());
+        time.value = Date.now();
       }, interval);
 
       return () => {
@@ -40,7 +40,7 @@ function DemoClock({ interval = 1000, _reactiveData }: DemoClockProps) {
       </h4>
 
       <div className="text-4xl font-bold text-blue-900 my-4 font-mono">
-        {new Date(time).toLocaleTimeString()}
+        {new Date(observe(time)).toLocaleTimeString()}
       </div>
 
       <div className="text-sm text-gray-600">
@@ -50,7 +50,7 @@ function DemoClock({ interval = 1000, _reactiveData }: DemoClockProps) {
       <div className="mt-3 p-2 bg-white/50 rounded text-xs text-blue-700">
         ⚡ <strong>Pure Server Component!</strong>
         <br />
-        Updates via useReactive hook + RSC streaming over SSE
+        Updates via createStream() + RSC streaming over SSE
       </div>
     </div>
   );

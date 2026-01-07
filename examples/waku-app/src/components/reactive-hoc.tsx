@@ -8,8 +8,12 @@
  * ```tsx
  * // Define your reactive component
  * function ClockBase({ interval = 1000 }) {
- *   const time = useReactive(...)
- *   return <div>{time}</div>
+ *   const time = signal(Date.now())
+ *   createStream(() => {
+ *     const id = setInterval(() => time.value = Date.now(), interval)
+ *     return () => clearInterval(id)
+ *   }, [interval])
+ *   return <div>{observe(time)}</div>
  * }
  *
  * // Wrap it with reactive() HOC
@@ -35,18 +39,19 @@ import { Reactive } from './reactive';
  * @example
  * ```tsx
  * const Clock = reactive(function Clock({ interval }) {
- *   const time = useReactive(Date.now(), stream => {
- *     const id = setInterval(() => stream.next(Date.now()), interval)
+ *   const time = signal(Date.now())
+ *   createStream(() => {
+ *     const id = setInterval(() => time.value = Date.now(), interval)
  *     return () => clearInterval(id)
  *   }, [interval])
- *   return <div>{new Date(time).toLocaleTimeString()}</div>
+ *   return <div>{new Date(observe(time)).toLocaleTimeString()}</div>
  * })
  *
  * export default Clock
  * ```
  */
 export function reactive<P extends Record<string, any>>(
-  Component: ComponentType<P & { _reactiveData?: any }>
+  Component: ComponentType<P>
 ): ComponentType<P> {
   const ReactiveWrapper = (props: P) => {
     return (

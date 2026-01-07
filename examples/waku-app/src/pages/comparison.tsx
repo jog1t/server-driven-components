@@ -2,8 +2,8 @@
  * Comparison Page - Demonstrates separated state and stream APIs
  *
  * Shows the difference between:
- * - useReactiveStream: Component-local reactive streams
- * - useServerState: Global signal subscriptions
+ * - createStream: Component-local reactive streams
+ * - observe: Global signal subscriptions
  */
 
 import { Reactive } from '../components/reactive';
@@ -24,21 +24,21 @@ export default function ComparisonPage() {
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1">
           <li>
-            <code className="bg-white px-2 py-1 rounded text-sm">useReactiveStream()</code> -
+            <code className="bg-white px-2 py-1 rounded text-sm">createStream()</code> -
             For component-local reactive streams (timers, intervals, async data)
           </li>
           <li>
-            <code className="bg-white px-2 py-1 rounded text-sm">useServerState()</code> -
+            <code className="bg-white px-2 py-1 rounded text-sm">observe()</code> -
             For subscribing to global/shared signals
           </li>
         </ul>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Component using useReactiveStream */}
+        {/* Component using createStream */}
         <div>
           <h3 className="text-xl font-bold mb-3 text-gray-700">
-            useReactiveStream()
+            createStream()
           </h3>
           <Reactive
             streamKey="demo-stream-clock"
@@ -55,10 +55,10 @@ export default function ComparisonPage() {
           </div>
         </div>
 
-        {/* Component using useServerState */}
+        {/* Component using observe */}
         <div>
           <h3 className="text-xl font-bold mb-3 text-gray-700">
-            useServerState()
+            observe()
           </h3>
           <Reactive
             streamKey="demo-server-state"
@@ -109,28 +109,34 @@ export default function ComparisonPage() {
 
         <div className="space-y-6">
           <div>
-            <h4 className="font-bold text-lg mb-2">useReactiveStream()</h4>
+            <h4 className="font-bold text-lg mb-2">createStream()</h4>
             <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto">
-{`const time = useReactiveStream(
-  Date.now(),
-  (stream) => {
-    const id = setInterval(() => stream.next(Date.now()), 1000);
+{`// Create a signal
+const time = signal(Date.now());
+
+// Set up a stream to modify it
+createStream(
+  () => {
+    const id = setInterval(() => time.value = Date.now(), 1000);
     return () => clearInterval(id);
   },
   []
-);`}
+);
+
+// Read the signal
+<div>{observe(time)}</div>`}
             </pre>
           </div>
 
           <div>
-            <h4 className="font-bold text-lg mb-2">useServerState()</h4>
+            <h4 className="font-bold text-lg mb-2">observe()</h4>
             <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto">
 {`// In signals/server-time.ts
 export const serverTime = signal(Date.now());
-setInterval(() => serverTime.set(Date.now()), 1000);
+setInterval(() => serverTime.value = Date.now(), 1000);
 
 // In your component
-const time = useServerState(serverTime);`}
+const time = observe(serverTime);`}
             </pre>
           </div>
         </div>

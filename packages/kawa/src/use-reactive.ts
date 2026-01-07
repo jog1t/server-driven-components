@@ -1,20 +1,19 @@
 /**
- * useReactive - Hook for reactive server components
+ * Reactive server component utilities
  *
- * Supports two modes:
- * 1. Inline reactive state with stream function
- * 2. Subscribe to existing signal
+ * - createStream: Create component-local reactive streams
+ * - observe: Subscribe to shared server-side signals
  */
 
 import { useId } from 'react';
 import { reactiveRuntime, type StreamFunction } from './runtime';
-import { isSignal, type Signal } from './signal';
+import type { Signal } from './signal';
 
 // Track which components have registered to prevent duplicates during render
 const registeredComponents = new Map<string, string>();
 
 /**
- * useServerState - Subscribe to a shared server-side signal
+ * observe - Subscribe to a shared server-side signal
  *
  * Use this when you want to subscribe to external/shared state that's
  * managed outside of your component (e.g., global signals).
@@ -23,40 +22,41 @@ const registeredComponents = new Map<string, string>();
  * import { serverTime } from './signals/server-time';
  *
  * function Clock() {
- *   const time = useServerState(serverTime);
+ *   const time = observe(serverTime);
  *   return <div>{new Date(time).toLocaleTimeString()}</div>;
  * }
  */
-export function useServerState<T>(signal: Signal<T>): T {
+export function observe<T>(signal: Signal<T>): T {
   // For signals, we just return current value
   // Client-side subscription will be handled by the client component wrapper
   return signal.value;
 }
 
 /**
- * useReactiveStream - Create a reactive stream with inline state management
+ * createStream - Create a reactive stream for side effects
  *
- * Use this when you want to create component-local reactive state that
- * updates over time (e.g., timers, intervals, async data streams).
+ * Use this when you want to set up reactive side effects that modify signals.
+ * This function doesn't return a value - use observe() to read signal values.
  *
  * @example
  * function Timer() {
- *   const time = useReactiveStream(
- *     Date.now(),
- *     (stream) => {
- *       const id = setInterval(() => stream.next(Date.now()), 1000);
+ *   const time = signal(Date.now());
+ *
+ *   createStream(
+ *     () => {
+ *       const id = setInterval(() => time.value = Date.now(), 1000);
  *       return () => clearInterval(id);
  *     },
  *     []
  *   );
- *   return <div>{new Date(time).toLocaleTimeString()}</div>;
+ *
+ *   return <div>{new Date(observe(time)).toLocaleTimeString()}</div>;
  * }
  */
-export function useReactiveStream<T>(
-  initialValue: T,
-  streamFn: StreamFunction<T>,
+export function createStream(
+  streamFn: StreamFunction<any>,
   deps: any[]
-): T {
+): void {
   // Generate unique component ID
   const componentId = useId();
 
@@ -64,56 +64,9 @@ export function useReactiveStream<T>(
   const registrationKey = `${componentId}:${JSON.stringify(deps)}`;
 
   if (!registeredComponents.has(registrationKey)) {
-    const streamKey = reactiveRuntime.registerStream(componentId, deps, initialValue, streamFn);
+    const streamKey = reactiveRuntime.registerStream(componentId, deps, undefined, streamFn);
     registeredComponents.set(registrationKey, streamKey);
   }
-
-  // Get current value from runtime
-  const streamKey = registeredComponents.get(registrationKey)!;
-  const currentValue = reactiveRuntime.getCurrentValue<T>(streamKey);
-
-  return currentValue ?? initialValue;
-}
-
-/**
- * useReactive - Create reactive state that auto-streams updates
- *
- * @deprecated Use useServerState() for signals or useReactiveStream() for inline streams.
- * This function is kept for backward compatibility.
- *
- * @example
- * // Inline reactive state - prefer useReactiveStream()
- * const time = useReactive(Date.now(), (stream) => {
- *   const id = setInterval(() => stream.next(Date.now()), 1000)
- *   return () => clearInterval(id)
- * }, [])
- *
- * @example
- * // Subscribe to signal - prefer useServerState()
- * const time = useReactive(timeSignal)
- */
-export function useReactive<T>(signal: Signal<T>): T;
-export function useReactive<T>(
-  initialValue: T,
-  streamFn: StreamFunction<T>,
-  deps: any[]
-): T;
-export function useReactive<T>(
-  initialValueOrSignal: T | Signal<T>,
-  streamFn?: StreamFunction<T>,
-  deps?: any[]
-): T {
-  // Mode 1: Subscribe to existing signal
-  if (isSignal(initialValueOrSignal)) {
-    return useServerState(initialValueOrSignal);
-  }
-
-  // Mode 2: Inline reactive state with stream function
-  if (!streamFn || !deps) {
-    throw new Error('useReactive requires streamFn and deps when not using a signal');
-  }
-
-  return useReactiveStream(initialValueOrSignal as T, streamFn, deps);
 }
 
 /**

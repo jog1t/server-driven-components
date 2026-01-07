@@ -6,17 +6,16 @@
  * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'kawa';
+import { observe } from 'kawa';
 import { reactive } from './reactive-hoc';
 import { serverTime } from '../lib/signals/server-time';
 
 interface DemoSharedTimeProps {
   label?: string;
-  _reactiveData?: number;
 }
 
-function DemoSharedTime({ label = 'Server Time', _reactiveData }: DemoSharedTimeProps) {
-  const time = useReactive(serverTime);
+function DemoSharedTime({ label = 'Server Time' }: DemoSharedTimeProps) {
+  const time = observe(serverTime);
 
   const serverRenderTime = new Date().toISOString();
 

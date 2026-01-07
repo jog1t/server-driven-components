@@ -1,41 +1,34 @@
 /**
  * Demo Counter - Reactive Server Component
  *
- * Demonstrates useReactive with auto-incrementing counter.
+ * Demonstrates createStream with auto-incrementing counter.
  * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'kawa';
+import { signal, observe, createStream } from 'kawa';
 import { reactive } from './reactive-hoc';
 
 interface DemoCounterProps {
   increment?: number;
   interval?: number;
-  _reactiveData?: number;
 }
 
 function DemoCounter({
   increment = 1,
   interval = 2000,
-  _reactiveData,
 }: DemoCounterProps) {
-  const count = useReactive(
-    _reactiveData ?? 0,
-    (stream) => {
+  const count = signal(0);
+
+  createStream(
+    () => {
       console.log(`[DemoCounter] Starting counter (increment: ${increment}, interval: ${interval}ms)`);
 
-      let currentCount = 0;
-
-      // Send initial value
-      stream.next(currentCount);
-
       const id = setInterval(() => {
-        currentCount += increment;
-        stream.next(currentCount);
+        count.value += increment;
       }, interval);
 
       return () => {
-        console.log(`[DemoCounter] Stopping counter at ${currentCount}`);
+        console.log(`[DemoCounter] Stopping counter at ${count.value}`);
         clearInterval(id);
       };
     },
@@ -50,7 +43,7 @@ function DemoCounter({
         🔢 Reactive Counter (+{increment} every {interval}ms)
       </h4>
 
-      <div className="text-4xl font-bold text-green-900 my-4">Count: {count}</div>
+      <div className="text-4xl font-bold text-green-900 my-4">Count: {observe(count)}</div>
 
       <div className="text-sm text-gray-600">
         Server rendered: {new Date(serverRenderTime).toLocaleTimeString()}
