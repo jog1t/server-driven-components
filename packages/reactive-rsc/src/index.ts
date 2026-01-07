@@ -7,7 +7,7 @@
 export { signal, computed, isSignal } from './signal';
 export type { Signal, WritableSignal, Cleanup, Listener } from './signal';
 
-export { useReactive } from './use-reactive';
+export { useReactive, useServerState, useReactiveStream } from './use-reactive';
 
 export { reactiveRuntime } from './runtime';
 export type { StreamCallback, StreamFunction, Subscriber } from './runtime';

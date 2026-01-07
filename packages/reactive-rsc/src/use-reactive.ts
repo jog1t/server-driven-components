@@ -14,17 +14,82 @@ import { isSignal, type Signal } from './signal';
 const registeredComponents = new Map<string, string>();
 
 /**
- * useReactive - Create reactive state that auto-streams updates
+ * useServerState - Subscribe to a shared server-side signal
+ *
+ * Use this when you want to subscribe to external/shared state that's
+ * managed outside of your component (e.g., global signals).
  *
  * @example
- * // Inline reactive state
+ * import { serverTime } from './signals/server-time';
+ *
+ * function Clock() {
+ *   const time = useServerState(serverTime);
+ *   return <div>{new Date(time).toLocaleTimeString()}</div>;
+ * }
+ */
+export function useServerState<T>(signal: Signal<T>): T {
+  // For signals, we just return current value
+  // Client-side subscription will be handled by the client component wrapper
+  return signal.value;
+}
+
+/**
+ * useReactiveStream - Create a reactive stream with inline state management
+ *
+ * Use this when you want to create component-local reactive state that
+ * updates over time (e.g., timers, intervals, async data streams).
+ *
+ * @example
+ * function Timer() {
+ *   const time = useReactiveStream(
+ *     Date.now(),
+ *     (stream) => {
+ *       const id = setInterval(() => stream.next(Date.now()), 1000);
+ *       return () => clearInterval(id);
+ *     },
+ *     []
+ *   );
+ *   return <div>{new Date(time).toLocaleTimeString()}</div>;
+ * }
+ */
+export function useReactiveStream<T>(
+  initialValue: T,
+  streamFn: StreamFunction<T>,
+  deps: any[]
+): T {
+  // Generate unique component ID
+  const componentId = useId();
+
+  // Register stream if not already registered
+  const registrationKey = `${componentId}:${JSON.stringify(deps)}`;
+
+  if (!registeredComponents.has(registrationKey)) {
+    const streamKey = reactiveRuntime.registerStream(componentId, deps, initialValue, streamFn);
+    registeredComponents.set(registrationKey, streamKey);
+  }
+
+  // Get current value from runtime
+  const streamKey = registeredComponents.get(registrationKey)!;
+  const currentValue = reactiveRuntime.getCurrentValue<T>(streamKey);
+
+  return currentValue ?? initialValue;
+}
+
+/**
+ * useReactive - Create reactive state that auto-streams updates
+ *
+ * @deprecated Use useServerState() for signals or useReactiveStream() for inline streams.
+ * This function is kept for backward compatibility.
+ *
+ * @example
+ * // Inline reactive state - prefer useReactiveStream()
  * const time = useReactive(Date.now(), (stream) => {
  *   const id = setInterval(() => stream.next(Date.now()), 1000)
  *   return () => clearInterval(id)
  * }, [])
  *
  * @example
- * // Subscribe to signal
+ * // Subscribe to signal - prefer useServerState()
  * const time = useReactive(timeSignal)
  */
 export function useReactive<T>(signal: Signal<T>): T;
@@ -38,14 +103,9 @@ export function useReactive<T>(
   streamFn?: StreamFunction<T>,
   deps?: any[]
 ): T {
-  // Generate unique component ID
-  const componentId = useId();
-
   // Mode 1: Subscribe to existing signal
   if (isSignal(initialValueOrSignal)) {
-    // For signals, we just return current value
-    // Client-side subscription will be handled by the client component wrapper
-    return initialValueOrSignal.value;
+    return useServerState(initialValueOrSignal);
   }
 
   // Mode 2: Inline reactive state with stream function
@@ -53,22 +113,7 @@ export function useReactive<T>(
     throw new Error('useReactive requires streamFn and deps when not using a signal');
   }
 
-  const initialValue = initialValueOrSignal as T;
-
-  // Register stream if not already registered
-  const registrationKey = `${componentId}:${JSON.stringify(deps)}`;
-
-  if (!registeredComponents.has(registrationKey)) {
-    const streamKey = reactiveRuntime.registerStream(componentId, deps, initialValue, streamFn);
-    registeredComponents.set(registrationKey, streamKey);
-    console.log(`[useReactive] Registered component ${componentId} with stream ${streamKey}`);
-  }
-
-  // Get current value from runtime
-  const streamKey = registeredComponents.get(registrationKey)!;
-  const currentValue = reactiveRuntime.getCurrentValue<T>(streamKey);
-
-  return currentValue ?? initialValue;
+  return useReactiveStream(initialValueOrSignal as T, streamFn, deps);
 }
 
 /**
