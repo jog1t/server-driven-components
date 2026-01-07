@@ -1,0 +1,27 @@
+{
+  "name": "server-driven-components",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reactive Server Components with SSE streaming",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=examples/waku-app",
+    "build": "npm run build --workspaces --if-present",
+    "build:lib": "npm run build --workspace=packages/reactive-rsc",
+    "build:example": "npm run build --workspace=examples/waku-app"
+  },
+  "keywords": [
+    "react",
+    "server-components",
+    "reactive",
+    "streaming",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {}
+}

@@ -4,7 +4,7 @@
  * Demonstrates useReactive with interval-based updates.
  */
 
-import { useReactive } from '../lib/reactive';
+import { useReactive } from 'reactive-rsc';
 
 interface DemoClockProps {
   interval?: number;

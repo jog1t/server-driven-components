@@ -4,7 +4,7 @@
  * Demonstrates useReactive with auto-incrementing counter.
  */
 
-import { useReactive } from '../lib/reactive';
+import { useReactive } from 'reactive-rsc';
 
 interface DemoCounterProps {
   increment?: number;
