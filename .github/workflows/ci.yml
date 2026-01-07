@@ -30,6 +30,3 @@ jobs:
 
       - name: Build library
         run: pnpm build:lib
-
-      - name: Build example
-        run: pnpm build:example
