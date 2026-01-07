@@ -25,7 +25,7 @@ let globalBackend: ReactiveBackend | null = null;
  *
  * @example
  * ```typescript
- * import { initReactiveBackend } from 'reactive-rsc/rivet';
+ * import { initReactiveBackend } from 'kawa/rivetkit';
  * import { registry } from './registry';
  *
  * // Set as global default
@@ -80,15 +80,8 @@ export function getGlobalBackend(): ReactiveBackend | null {
  * (Internal - used by signal implementation)
  */
 export async function getReactiveActor(backend: ReactiveBackend) {
-  // TODO: Implement actual RivetKit client API call
-  // For now, this is a placeholder
-  return {
-    call: async (action: string, params?: any) => {
-      console.log(`[RivetKit] ${backend.actorName}:${backend.actorId}.${action}`, params);
-      // Placeholder - will be replaced with actual RivetKit client
-      return {};
-    },
-  };
+  // Get the actor from the registry
+  return backend.registry.actor(backend.actorName, backend.actorId);
 }
 
 /**

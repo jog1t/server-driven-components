@@ -8,8 +8,8 @@ import { reactiveStateActor } from './actors/reactiveState';
  *
  * @example
  * ```typescript
- * import { reactiveRegistry } from 'reactive-rsc/rivet';
- * import { createReactiveBackend } from 'reactive-rsc/rivet';
+ * import { reactiveRegistry } from 'kawa/rivetkit';
+ * import { createReactiveBackend } from 'kawa/rivetkit';
  *
  * const { signal } = createReactiveBackend({ registry: reactiveRegistry });
  * ```

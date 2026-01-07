@@ -9,7 +9,7 @@
 
 import type { WritableSignal } from './signal';
 import { signal as createSignal } from './signal';
-import type { ReactiveBackend } from './rivet/init';
+import type { ReactiveBackend } from './rivetkit/init';
 
 /**
  * Signal family - generates signals dynamically based on parameters

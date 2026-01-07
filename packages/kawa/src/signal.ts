@@ -1,15 +1,24 @@
 /**
  * Signal - Reactive primitive for server-side state
  *
- * Signals are observable values that can be subscribed to.
- * When a signal's value changes, all subscribers are notified.
+ * Powered by @preact/signals-core for robust reactivity with auto-tracking.
  */
 
-import type { ReactiveBackend } from './rivet/init';
+import {
+  signal as preactSignal,
+  computed as preactComputedFn,
+  effect,
+  type Signal as PreactSignal,
+} from '@preact/signals-core';
+import type { ReactiveBackend } from './rivetkit/init';
 
 export type Listener<T> = (value: T) => void;
 export type Cleanup = () => void;
 
+/**
+ * Our Signal interface wraps Preact's Signal to maintain API compatibility
+ * while adding our custom subscribe method
+ */
 export interface Signal<T> {
   readonly value: T;
   subscribe(listener: Listener<T>): Cleanup;
@@ -22,73 +31,72 @@ export interface WritableSignal<T> extends Signal<T> {
 }
 
 /**
- * Create a writable signal
+ * Internal wrapper to add subscribe method to Preact signals
  */
-export function signal<T>(initialValue: T): WritableSignal<T> {
-  let value = initialValue;
-  const listeners = new Set<Listener<T>>();
-
-  const sig: WritableSignal<T> = {
+function wrapSignal<T>(preactSig: PreactSignal<T>): Signal<T> {
+  return {
     get value() {
-      return value;
+      return preactSig.value;
     },
-
-    set(newValue: T | ((prev: T) => T)) {
-      const nextValue = typeof newValue === 'function' ? (newValue as (prev: T) => T)(value) : newValue;
-
-      if (nextValue !== value) {
-        value = nextValue;
-        listeners.forEach((listener) => listener(value));
-
-        // Sync to backend if available (async, fire-and-forget)
-        const key = (sig as any).__key;
-        const backend = (sig as any).__backend as ReactiveBackend | undefined;
-        if (key && backend) {
-          // Dynamic import to avoid circular dependency
-          import('./rivet/init').then(({ syncSignalToRivet }) => {
-            syncSignalToRivet(key, value, backend).catch((err) => {
-              console.error(`Failed to sync signal ${key}:`, err);
-            });
-          });
-        }
-      }
-    },
-
-    update(fn: (prev: T) => T) {
-      sig.set(fn);
-    },
-
     subscribe(listener: Listener<T>) {
-      listeners.add(listener);
-      // Send current value immediately
-      listener(value);
-
-      return () => {
-        listeners.delete(listener);
-      };
+      // Use Preact's effect to subscribe to signal changes
+      const dispose = effect(() => {
+        listener(preactSig.value);
+      });
+      return dispose;
     },
-
     __isSignal: true as const,
   };
+}
 
-  return sig;
+/**
+ * Create a writable signal with auto-tracking capabilities
+ *
+ * Now powered by @preact/signals-core with full reactive graph support
+ */
+export function signal<T>(initialValue: T): WritableSignal<T> {
+  const preactSig = preactSignal(initialValue);
+
+  const wrapped = wrapSignal(preactSig);
+
+  const writableSig: WritableSignal<T> = {
+    ...wrapped,
+    set(value: T | ((prev: T) => T)) {
+      if (typeof value === 'function') {
+        preactSig.value = (value as (prev: T) => T)(preactSig.value);
+      } else {
+        preactSig.value = value;
+      }
+
+      // Sync to backend if available (async, fire-and-forget)
+      const key = (writableSig as any).__key;
+      const backend = (writableSig as any).__backend as ReactiveBackend | undefined;
+      if (key && backend) {
+        // Dynamic import to avoid circular dependency
+        import('./rivetkit/init').then(({ syncSignalToRivet }) => {
+          syncSignalToRivet(key, preactSig.value, backend).catch((err) => {
+            console.error(`Failed to sync signal ${key}:`, err);
+          });
+        });
+      }
+    },
+    update(fn: (prev: T) => T) {
+      writableSig.set(fn);
+    },
+  };
+
+  return writableSig;
 }
 
 /**
  * Create a computed signal that derives its value from other signals
+ *
+ * Now with FULL AUTO-TRACKING! Dependencies are automatically tracked
+ * and the computed value updates when any dependency changes.
  */
 export function computed<T>(compute: () => T): Signal<T> {
-  // For now, just create a static signal
-  // Full reactive graph would require dependency tracking
-  const sig = signal(compute());
-
-  return {
-    get value() {
-      return sig.value;
-    },
-    subscribe: sig.subscribe.bind(sig),
-    __isSignal: true as const,
-  };
+  const preactComp = preactComputedFn(compute);
+  return wrapSignal(preactComp);
 }
 
 /**

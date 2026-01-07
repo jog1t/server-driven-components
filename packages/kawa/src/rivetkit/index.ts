@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
+ * import { initReactiveBackend, reactiveRegistry } from 'kawa/rivetkit';
  *
  * // Initialize once at server startup
  * initReactiveBackend({ registry: reactiveRegistry });

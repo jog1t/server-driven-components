@@ -10,9 +10,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./rivet": {
-      "types": "./dist/rivet/index.d.ts",
-      "import": "./dist/rivet/index.js"
+    "./rivetkit": {
+      "types": "./dist/rivetkit/index.d.ts",
+      "import": "./dist/rivetkit/index.js"
     }
   },
   "files": [

@@ -182,7 +182,7 @@ export function CursorLayer({ roomId }: { roomId: string }) {
 
 ```typescript
 // src/server.ts
-import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivetkit';
 
 // Initialize RivetKit backend
 initReactiveBackend({
@@ -220,7 +220,7 @@ userPosition("alice").set({ x: 100, y: 200 });
 
 ```typescript
 // src/server.ts
-import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivetkit';
 
 // Different actor instances for different scopes
 initReactiveBackend({
@@ -265,14 +265,14 @@ profile.set({ invalid: true }); // ❌ TypeScript error
 
 **Before (factory pattern):**
 ```typescript
-import { createReactiveBackend } from 'kawa/rivet';
+import { createReactiveBackend } from 'kawa/rivetkit';
 
 export const { signal } = createReactiveBackend({ registry });
 ```
 
 **After (init + namespaces):**
 ```typescript
-import { initReactiveBackend } from 'kawa/rivet';
+import { initReactiveBackend } from 'kawa/rivetkit';
 import { namespace } from 'kawa';
 
 // Initialize once

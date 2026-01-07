@@ -240,7 +240,7 @@ pnpm add rivetkit
 
 ```typescript
 // src/server.ts
-import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivetkit';
 
 // Initialize once at server startup (sets global default)
 initReactiveBackend({ registry: reactiveRegistry });
@@ -280,7 +280,7 @@ const analytics = namespace("analytics");  // Uses global backend
 - ✅ Works on serverless (Vercel, Cloudflare Workers)
 - ✅ Multi-tenancy with per-namespace backends
 
-[Learn more about the RivetKit backend →](./src/rivet/README.md)
+[Learn more about the RivetKit backend →](./src/rivetkit/README.md)
 
 ## Contributing
 
