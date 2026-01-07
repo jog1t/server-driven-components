@@ -190,6 +190,35 @@ export default function Notifications() {
 }
 ```
 
+## Namespaces & Families
+
+Organize signals hierarchically for better structure:
+
+```typescript
+import { namespace } from 'reactive-rsc';
+
+// Create nested namespaces
+const app = namespace("app");
+const shop = app.namespace("shop");
+const users = app.namespace("users");
+
+// Create signals in namespaces
+const theme = app.signal("theme", "dark");      // Key: "app:theme"
+const products = shop.signal("products", []);   // Key: "app:shop:products"
+
+// Create families for dynamic entities
+const userPosition = users.family((userId: string) => ({
+  key: `${userId}:position`,
+  default: { x: 0, y: 0 }
+}));
+
+// Use the family
+const alicePos = userPosition("alice");  // Key: "app:users:alice:position"
+const bobPos = userPosition("bob");      // Key: "app:users:bob:position"
+```
+
+[See more examples →](./EXAMPLES.md)
+
 ## Backends
 
 ### Memory Backend (Default)
@@ -208,15 +237,21 @@ pnpm add rivetkit
 ```
 
 ```typescript
-// src/reactive.ts
-import { createReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
+// src/server.ts
+import { initReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
 
-export const { signal, useReactive } = createReactiveBackend({
-  registry: reactiveRegistry
-});
-
-// Start the registry
+// Initialize once at server startup
+initReactiveBackend({ registry: reactiveRegistry });
 reactiveRegistry.start({ defaultServerPort: 3001 });
+
+// Now all signals are automatically persisted!
+import { namespace } from 'reactive-rsc';
+
+const users = namespace("users");
+const userPos = users.signal("alice:pos", { x: 0, y: 0 });
+// → Automatically saved to RivetKit
+// → Broadcast to all clients
+// → Survives server restarts
 ```
 
 **Benefits:**
@@ -224,6 +259,7 @@ reactiveRegistry.start({ defaultServerPort: 3001 });
 - ✅ Multi-server coordination
 - ✅ File System / Redis / Postgres storage
 - ✅ Horizontal scaling
+- ✅ Works on serverless (Vercel, Cloudflare Workers)
 
 [Learn more about the RivetKit backend →](./src/rivet/README.md)
 
