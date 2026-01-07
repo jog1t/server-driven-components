@@ -5,7 +5,8 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches:
-      - claude/**
+      - '**'
+      - '!main'
 
 jobs:
   publish-preview:
@@ -27,10 +28,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build package
         run: pnpm --filter kawa build
