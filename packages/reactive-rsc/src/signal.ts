@@ -5,6 +5,8 @@
  * When a signal's value changes, all subscribers are notified.
  */
 
+import type { ReactiveBackend } from './rivet/init';
+
 export type Listener<T> = (value: T) => void;
 export type Cleanup = () => void;
 
@@ -37,6 +39,18 @@ export function signal<T>(initialValue: T): WritableSignal<T> {
       if (nextValue !== value) {
         value = nextValue;
         listeners.forEach((listener) => listener(value));
+
+        // Sync to backend if available (async, fire-and-forget)
+        const key = (sig as any).__key;
+        const backend = (sig as any).__backend as ReactiveBackend | undefined;
+        if (key && backend) {
+          // Dynamic import to avoid circular dependency
+          import('./rivet/init').then(({ syncSignalToRivet }) => {
+            syncSignalToRivet(key, value, backend).catch((err) => {
+              console.error(`Failed to sync signal ${key}:`, err);
+            });
+          });
+        }
       }
     },
 

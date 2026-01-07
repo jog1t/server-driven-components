@@ -7,62 +7,84 @@
 import type { Registry } from 'rivetkit';
 import type { WritableSignal } from '../signal';
 
-let rivetRegistry: Registry<any> | null = null;
-let reactiveActorName = 'reactiveState';
-let reactiveActorId = 'global';
+/**
+ * Backend instance for persisting signals to RivetKit
+ */
+export interface ReactiveBackend {
+  registry: Registry<any>;
+  actorName: string;
+  actorId: string;
+}
+
+let globalBackend: ReactiveBackend | null = null;
 
 /**
  * Initialize RivetKit backend
  *
- * After calling this, all signals will be persisted in RivetKit actors.
+ * Can be called with or without setting as global default.
  *
  * @example
  * ```typescript
  * import { initReactiveBackend } from 'reactive-rsc/rivet';
  * import { registry } from './registry';
  *
+ * // Set as global default
  * initReactiveBackend({ registry });
  *
- * // Now signals are persisted
- * const counter = signal("counter", 0);
- * counter.set(5); // Saved to RivetKit actor
+ * // Or create isolated backend for specific namespace
+ * const userBackend = initReactiveBackend({
+ *   registry,
+ *   actorId: 'users',
+ *   global: false
+ * });
+ * const users = namespace("users", { backend: userBackend });
  * ```
  */
 export function initReactiveBackend(options: {
   registry: Registry<any>;
   actorName?: string;
   actorId?: string;
-}) {
-  rivetRegistry = options.registry;
-  reactiveActorName = options.actorName || 'reactiveState';
-  reactiveActorId = options.actorId || 'global';
+  global?: boolean;
+}): ReactiveBackend {
+  const backend: ReactiveBackend = {
+    registry: options.registry,
+    actorName: options.actorName || 'reactiveState',
+    actorId: options.actorId || 'global',
+  };
 
-  console.log(`[reactive-rsc] Initialized RivetKit backend: ${reactiveActorName}:${reactiveActorId}`);
+  // Set as global backend by default
+  if (options.global !== false) {
+    globalBackend = backend;
+    console.log(`[reactive-rsc] Initialized global RivetKit backend: ${backend.actorName}:${backend.actorId}`);
+  }
+
+  return backend;
 }
 
 /**
  * Check if RivetKit backend is initialized
  */
 export function isRivetBackendInitialized(): boolean {
-  return rivetRegistry !== null;
+  return globalBackend !== null;
 }
 
 /**
- * Get the RivetKit actor for reactive state
+ * Get the global backend (internal)
+ */
+export function getGlobalBackend(): ReactiveBackend | null {
+  return globalBackend;
+}
+
+/**
+ * Get the RivetKit actor for a backend
  * (Internal - used by signal implementation)
  */
-export async function getReactiveActor() {
-  if (!rivetRegistry) {
-    throw new Error(
-      'RivetKit backend not initialized. Call initReactiveBackend() first.'
-    );
-  }
-
+export async function getReactiveActor(backend: ReactiveBackend) {
   // TODO: Implement actual RivetKit client API call
   // For now, this is a placeholder
   return {
     call: async (action: string, params?: any) => {
-      console.log(`[RivetKit] ${reactiveActorName}:${reactiveActorId}.${action}`, params);
+      console.log(`[RivetKit] ${backend.actorName}:${backend.actorId}.${action}`, params);
       // Placeholder - will be replaced with actual RivetKit client
       return {};
     },
@@ -73,14 +95,16 @@ export async function getReactiveActor() {
  * Sync a signal to RivetKit actor
  * (Internal - used by signal implementation)
  */
-export async function syncSignalToRivet(key: string, value: any) {
-  if (!rivetRegistry) {
+export async function syncSignalToRivet(key: string, value: any, backend?: ReactiveBackend) {
+  const targetBackend = backend || globalBackend;
+
+  if (!targetBackend) {
     // No RivetKit backend - skip sync
     return;
   }
 
   try {
-    const actor = await getReactiveActor();
+    const actor = await getReactiveActor(targetBackend);
     await actor.call('setSignal', { key, value });
   } catch (error) {
     console.error(`[reactive-rsc] Failed to sync signal ${key}:`, error);
@@ -91,13 +115,15 @@ export async function syncSignalToRivet(key: string, value: any) {
  * Load a signal from RivetKit actor
  * (Internal - used by signal implementation)
  */
-export async function loadSignalFromRivet(key: string): Promise<any | undefined> {
-  if (!rivetRegistry) {
+export async function loadSignalFromRivet(key: string, backend?: ReactiveBackend): Promise<any | undefined> {
+  const targetBackend = backend || globalBackend;
+
+  if (!targetBackend) {
     return undefined;
   }
 
   try {
-    const actor = await getReactiveActor();
+    const actor = await getReactiveActor(targetBackend);
     const result = await actor.call('getSignal', { key });
     return result.exists ? result.value : undefined;
   } catch (error) {

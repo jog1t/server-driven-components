@@ -22,6 +22,7 @@
 export { reactiveStateActor } from './actors/reactiveState';
 export { reactiveRegistry } from './registry';
 export { initReactiveBackend, isRivetBackendInitialized } from './init';
+export type { ReactiveBackend } from './init';
 export type { Registry } from 'rivetkit';
 
 // Note: The factory pattern (createReactiveBackend) has been replaced
