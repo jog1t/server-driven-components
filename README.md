@@ -24,10 +24,14 @@ This project demonstrates a novel approach to building reactive server component
 
 The core library providing reactive primitives for React Server Components:
 
-- `useReactive()` - Hook for creating reactive server state
+- `useServerState()` - Subscribe to shared server-side signals **[New!]**
+- `useReactiveStream()` - Create component-local reactive streams **[New!]**
+- `useReactive()` - Legacy hook (backward compatible)
 - `signal()` - Shared reactive primitives
 - `computed()` - Derived reactive values
 - `reactiveRuntime` - Stream management and deduplication
+
+**[See API Separation Experiment →](./docs/API-SEPARATION-EXPERIMENT.md)**
 
 [Read the full documentation →](./packages/reactive-rsc/README.md)
 
@@ -61,6 +65,7 @@ pnpm build
 
 Detailed design documents and research can be found in the [`docs/`](./docs) directory:
 
+- **[API Separation Experiment](./docs/API-SEPARATION-EXPERIMENT.md)** - New separated state and stream APIs
 - [API Design Proposal](./docs/API_DESIGN_PROPOSAL.md)
 - [Reactive API Documentation](./docs/REACTIVE_API.md)
 - [Design Notes](./docs/DESIGN-v0.2.md)
