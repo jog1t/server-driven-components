@@ -122,11 +122,15 @@ class ReactiveRuntime {
 
   /**
    * Subscribe to a signal
+   *
+   * Uses signal's built-in subscribe method which is powered by
+   * @preact/signals-core's effect system for efficient reactivity
    */
   subscribeToSignal<T>(signal: Signal<T>, subscriber: Subscriber<T>): () => void {
     console.log(`[ReactiveRuntime] Subscribing to signal`);
 
-    // Subscribe to signal changes
+    // Subscribe to signal changes using the signal's subscribe method
+    // This now uses Preact's effect() under the hood for auto-tracking
     const unsubscribe = signal.subscribe((value) => {
       subscriber.send(value);
     });
