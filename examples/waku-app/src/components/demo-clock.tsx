@@ -5,7 +5,8 @@
  * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive, reactive } from 'reactive-rsc';
+import { useReactive } from 'reactive-rsc';
+import { reactive } from './reactive-hoc';
 
 interface DemoClockProps {
   interval?: number;

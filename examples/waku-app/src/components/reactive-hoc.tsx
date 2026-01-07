@@ -24,7 +24,7 @@
  */
 
 import type { ComponentType } from 'react';
-import { Reactive } from '../../components/reactive';
+import { Reactive } from './reactive';
 
 /**
  * Wrap a server component to make it reactive
