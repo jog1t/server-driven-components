@@ -11,6 +11,7 @@ import {
   type Signal as PreactSignal,
 } from '@preact/signals-core';
 import type { ReactiveBackend } from './rivetkit/init';
+import { syncSignalToRivet } from './rivetkit/init';
 
 export type Listener<T> = (value: T) => void;
 export type Cleanup = () => void;
@@ -72,11 +73,8 @@ export function signal<T>(initialValue: T): WritableSignal<T> {
       const key = (writableSig as any).__key;
       const backend = (writableSig as any).__backend as ReactiveBackend | undefined;
       if (key && backend) {
-        // Dynamic import to avoid circular dependency
-        import('./rivetkit/init').then(({ syncSignalToRivet }) => {
-          syncSignalToRivet(key, preactSig.value, backend).catch((err) => {
-            console.error(`Failed to sync signal ${key}:`, err);
-          });
+        syncSignalToRivet(key, preactSig.value, backend).catch((err) => {
+          console.error(`Failed to sync signal ${key}:`, err);
         });
       }
     },

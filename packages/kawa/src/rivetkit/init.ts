@@ -80,8 +80,18 @@ export function getGlobalBackend(): ReactiveBackend | null {
  * (Internal - used by signal implementation)
  */
 export async function getReactiveActor(backend: ReactiveBackend) {
-  // Get the actor from the registry
-  return backend.registry.actor(backend.actorName, backend.actorId);
+  // Get the actor from the registry using RivetKit's client API
+  // The registry is typed as `any` to support different RivetKit versions
+  const registry = backend.registry as any;
+
+  // RivetKit registries should provide an actor() method
+  if (typeof registry.actor === 'function') {
+    return registry.actor(backend.actorName, backend.actorId);
+  }
+
+  throw new Error(
+    `Registry does not support actor access. Make sure you're using a compatible RivetKit version.`
+  );
 }
 
 /**
