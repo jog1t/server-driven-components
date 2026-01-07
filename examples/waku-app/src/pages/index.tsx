@@ -5,6 +5,11 @@ import { Display } from '../components/display';
 import { ServerInfo } from '../components/server-info';
 import { DataFetch } from '../components/data-fetch';
 
+// Import reactive components (automatically wrapped with reactive() HOC)
+import DemoClock from '../components/demo-clock';
+import DemoCounter from '../components/demo-counter';
+import DemoSharedTime from '../components/demo-shared-time';
+
 // Import shared signals to start them
 import '../lib/signals/server-time';
 
@@ -26,8 +31,10 @@ export default async function HomePage() {
           <strong>Maximum simplicity!</strong> React-like syntax for reactive server components:
         </p>
         <pre className="bg-white p-3 rounded text-xs font-mono overflow-x-auto">
-          {`// Just use the hook in your server component!
-export default function Clock({ interval = 1000 }) {
+          {`// Just use the hook + reactive() HOC!
+import { useReactive, reactive } from './lib/reactive'
+
+function Clock({ interval = 1000 }) {
   const time = useReactive(Date.now(), (stream) => {
     const id = setInterval(() => {
       stream.next(Date.now())
@@ -36,7 +43,9 @@ export default function Clock({ interval = 1000 }) {
   }, [interval])  // deps array = automatic deduplication!
 
   return <div>{new Date(time).toLocaleTimeString()}</div>
-}`}
+}
+
+export default reactive(Clock)  // Wrap with HOC - no <Reactive> needed!`}
         </pre>
         <div className="mt-3 p-2 bg-purple-100 rounded text-xs">
           <strong>Key features:</strong>
@@ -117,15 +126,24 @@ export default function Clock({ interval = 1000 }) {
           </p>
         </div>
 
+        <div className="mt-3 p-3 bg-green-100 rounded border border-green-200">
+          <p className="text-xs text-green-800">
+            <strong>✨ NEW: reactive() HOC!</strong> Wrap your components with <code>reactive()</code>{' '}
+            and you don't need to add <code>&lt;Reactive&gt;</code> wrappers at usage sites!{' '}
+            <code>export default reactive(Clock)</code> - that's it!
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <div className="p-4 bg-white rounded border border-gray-200">
-            <p className="text-xs text-gray-600 mb-2">
-              <strong>Coming soon:</strong> Reactive demos
-            </p>
-            <p className="text-xs text-gray-500">
-              Clock, counter, and shared signal examples will be wired up next!
-            </p>
-          </div>
+          {/* No <Reactive> wrapper needed - components are wrapped with reactive() HOC! */}
+          <DemoClock interval={1000} />
+          <DemoCounter increment={1} interval={2000} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {/* Multiple instances of shared signal component */}
+          <DemoSharedTime label="Shared Server Time #1" />
+          <DemoSharedTime label="Shared Server Time #2" />
         </div>
       </div>
 

@@ -2,9 +2,10 @@
  * Demo Counter - Reactive Server Component
  *
  * Demonstrates useReactive with auto-incrementing counter.
+ * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'reactive-rsc';
+import { useReactive, reactive } from 'reactive-rsc';
 
 interface DemoCounterProps {
   increment?: number;
@@ -12,7 +13,7 @@ interface DemoCounterProps {
   _reactiveData?: number;
 }
 
-export default function DemoCounter({
+function DemoCounter({
   increment = 1,
   interval = 2000,
   _reactiveData,
@@ -62,3 +63,6 @@ export default function DemoCounter({
     </div>
   );
 }
+
+// Wrap with reactive() HOC - no need for <Reactive> wrapper at usage sites!
+export default reactive(DemoCounter);

@@ -9,5 +9,7 @@ export type { Signal, WritableSignal, Cleanup, Listener } from './signal';
 
 export { useReactive } from './use-reactive';
 
+export { reactive } from './define-reactive';
+
 export { reactiveRuntime } from './runtime';
 export type { StreamCallback, StreamFunction, Subscriber } from './runtime';

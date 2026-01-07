@@ -3,9 +3,10 @@
  *
  * Demonstrates subscribing to a shared signal.
  * Multiple instances of this component share the same signal.
+ * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'reactive-rsc';
+import { useReactive, reactive } from 'reactive-rsc';
 import { serverTime } from '../lib/signals/server-time';
 
 interface DemoSharedTimeProps {
@@ -13,7 +14,7 @@ interface DemoSharedTimeProps {
   _reactiveData?: number;
 }
 
-export default function DemoSharedTime({ label = 'Server Time', _reactiveData }: DemoSharedTimeProps) {
+function DemoSharedTime({ label = 'Server Time', _reactiveData }: DemoSharedTimeProps) {
   const time = useReactive(serverTime);
 
   const serverRenderTime = new Date().toISOString();
@@ -40,3 +41,6 @@ export default function DemoSharedTime({ label = 'Server Time', _reactiveData }:
     </div>
   );
 }
+
+// Wrap with reactive() HOC - no need for <Reactive> wrapper at usage sites!
+export default reactive(DemoSharedTime);
