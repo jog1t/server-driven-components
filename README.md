@@ -1,17 +1,19 @@
 # Server-Driven Components
 
-Reactive Server Components with SSE streaming - A monorepo containing the `reactive-rsc` library and example implementations.
+Reactive Server Components with SSE streaming - A monorepo containing the `kawa` library and example implementations.
 
 ## Overview
 
 This project demonstrates a novel approach to building reactive server components using React Server Components (RSC) and Server-Sent Events (SSE). Server state updates are automatically streamed to clients as RSC payloads, enabling real-time updates without client-side state management.
+
+> **About the name "kawa":** The library is named "kawa" (川) which means "river" in Japanese, representing the continuous flow of reactive data streaming from server to client. It's also "coffee" in Polish - because developers love coffee! ☕
 
 ## Repository Structure
 
 ```
 .
 ├── packages/
-│   └── reactive-rsc/       # Core reactive library
+│   └── kawa/       # Core reactive library
 ├── examples/
 │   └── waku-app/           # Waku framework example
 ├── docs/                   # Design documents and research
@@ -20,7 +22,7 @@ This project demonstrates a novel approach to building reactive server component
 
 ## Packages
 
-### [`reactive-rsc`](./packages/reactive-rsc)
+### [`kawa`](./packages/kawa)
 
 The core library providing reactive primitives for React Server Components:
 
@@ -33,7 +35,7 @@ The core library providing reactive primitives for React Server Components:
 
 **[See API Separation Experiment →](./docs/API-SEPARATION-EXPERIMENT.md)**
 
-[Read the full documentation →](./packages/reactive-rsc/README.md)
+[Read the full documentation →](./packages/kawa/README.md)
 
 ## Examples
 

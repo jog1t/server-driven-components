@@ -233,7 +233,7 @@ end
 ### Option A: Component-as-Identity (Phoenix-inspired)
 
 ```tsx
-import { ReactiveServerComponent } from 'reactive-rsc';
+import { ReactiveServerComponent } from 'kawa';
 
 export default class ClockComponent extends ReactiveServerComponent {
   state = {
@@ -270,7 +270,7 @@ export default class ClockComponent extends ReactiveServerComponent {
 ### Option B: Decorator Pattern (Livewire-inspired)
 
 ```tsx
-import { reactive } from 'reactive-rsc';
+import { reactive } from 'kawa';
 
 @reactive
 export function Clock() {
@@ -298,7 +298,7 @@ export function Clock() {
 ### Option C: Factory Function Pattern (SolidJS-inspired)
 
 ```tsx
-import { createReactiveComponent } from 'reactive-rsc';
+import { createReactiveComponent } from 'kawa';
 
 export const Clock = createReactiveComponent(() => {
   const [time, setTime] = useSignal(Date.now());
@@ -326,7 +326,7 @@ export const Clock = createReactiveComponent(() => {
 
 ```tsx
 // Each file = one reactive component instance
-import { signal, effect } from 'reactive-rsc/server';
+import { signal, effect } from 'kawa/server';
 
 const time = signal(Date.now());
 
@@ -389,7 +389,7 @@ After analyzing all these patterns, here's my recommendation:
 Combine the best ideas:
 
 ```tsx
-// reactive-rsc/server-hooks.ts
+// kawa/server-hooks.ts
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 const componentContext = new AsyncLocalStorage<string>();
@@ -405,7 +405,7 @@ export function useServerEffect(effect, deps) {
   // ... effect management
 }
 
-// reactive-rsc/components.tsx
+// kawa/components.tsx
 export function createReactive(Component) {
   return function ReactiveComponent(props) {
     const reactiveId = useId();
@@ -425,7 +425,7 @@ export function createReactive(Component) {
 
 Usage:
 ```tsx
-import { createReactive } from 'reactive-rsc';
+import { createReactive } from 'kawa';
 
 export const Clock = createReactive(() => {
   const [time, setTime] = useServerSignal('time', Date.now());
@@ -461,7 +461,7 @@ export const Clock = createReactive(() => {
 If we're willing to use classes:
 
 ```tsx
-import { ReactiveServerComponent } from 'reactive-rsc';
+import { ReactiveServerComponent } from 'kawa';
 
 export class Clock extends ReactiveServerComponent {
   time = this.signal(Date.now());

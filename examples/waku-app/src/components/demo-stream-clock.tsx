@@ -6,7 +6,7 @@
  * component-specific reactive streams.
  */
 
-import { useReactiveStream } from 'reactive-rsc';
+import { useReactiveStream } from 'kawa';
 
 interface DemoStreamClockProps {
   interval?: number;

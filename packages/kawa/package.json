@@ -1,5 +1,5 @@
 {
-  "name": "reactive-rsc",
+  "name": "kawa",
   "version": "0.1.0",
   "description": "Simple, type-safe reactivity for React Server Components",
   "type": "module",

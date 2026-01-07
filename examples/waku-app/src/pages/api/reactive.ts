@@ -5,7 +5,7 @@
  * Works with both inline reactive state and signals.
  */
 
-import { reactiveRuntime, isSignal, type Signal } from 'reactive-rsc';
+import { reactiveRuntime, isSignal, type Signal } from 'kawa';
 import { renderToReadableStream } from '@vitejs/plugin-rsc/rsc';
 import { createElement } from 'react';
 
