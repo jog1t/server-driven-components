@@ -48,13 +48,13 @@ A complete example application built with [Waku](https://waku.gg/) demonstrating
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run the example app
-npm run dev
+pnpm dev
 
 # Build all packages
-npm run build
+pnpm build
 ```
 
 ## Documentation
@@ -87,16 +87,16 @@ Detailed design documents and research can be found in the [`docs/`](./docs) dir
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Build the library
-npm run build:lib
+pnpm build:lib
 
 # Build the example
-npm run build:example
+pnpm build:example
 
 # Run the example in dev mode
-npm run dev
+pnpm dev
 ```
 
 ## Architecture

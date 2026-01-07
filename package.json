@@ -4,15 +4,11 @@
   "private": true,
   "description": "Reactive Server Components with SSE streaming",
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace=examples/waku-app",
-    "build": "npm run build --workspaces --if-present",
-    "build:lib": "npm run build --workspace=packages/reactive-rsc",
-    "build:example": "npm run build --workspace=examples/waku-app"
+    "dev": "pnpm --filter waku-example dev",
+    "build": "pnpm -r build",
+    "build:lib": "pnpm --filter reactive-rsc build",
+    "build:example": "pnpm --filter waku-example build"
   },
   "keywords": [
     "react",

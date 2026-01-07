@@ -14,7 +14,11 @@ Simple, type-safe reactivity for React Server Components with automatic SSE stre
 ## Installation
 
 ```bash
+pnpm add reactive-rsc
+# or
 npm install reactive-rsc
+# or
+yarn add reactive-rsc
 ```
 
 ## Quick Start

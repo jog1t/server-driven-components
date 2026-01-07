@@ -18,17 +18,17 @@ From the repository root:
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run the example
-npm run dev
+pnpm dev
 ```
 
 Or from this directory:
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
