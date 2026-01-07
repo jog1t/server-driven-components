@@ -4,15 +4,9 @@ import { Toggle } from '../components/toggle';
 import { Display } from '../components/display';
 import { ServerInfo } from '../components/server-info';
 import { DataFetch } from '../components/data-fetch';
-import { ChannelClock } from '../components/channel-clock';
-import { ChannelCounter } from '../components/channel-counter';
-import { ReactiveSubscribe } from '../components/reactive-subscribe';
-import { clockChannel } from '../channels/clock';
-import { counterChannel } from '../channels/counter';
 
-// Import channels to register them
-import '../channels/clock';
-import '../channels/counter';
+// Import shared signals to start them
+import '../lib/signals/server-time';
 
 export default async function HomePage() {
   const data = await getData();
@@ -23,45 +17,35 @@ export default async function HomePage() {
       <title>Reactive Server Components Demo</title>
       <h1 className="text-4xl font-bold tracking-tight mb-2">Reactive Server Components</h1>
       <p className="text-gray-600 mb-6">
-        Exploring server-driven UI with React Server Components + SSE
+        React Server Components + SSE streaming with the new <code>useReactive</code> hook
       </p>
 
-      <div className="mb-4 p-4 bg-purple-50 rounded border-2 border-purple-300">
-        <h2 className="text-xl font-bold mb-2">🎉 v0.4: Channel-Based Reactivity!</h2>
+      <div className="mb-4 p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded border-2 border-purple-300">
+        <h2 className="text-xl font-bold mb-2">🎉 v0.5: useReactive Hook!</h2>
         <p className="text-sm mb-2">
-          <strong>Revolutionary simplification!</strong> No more hook coordination - just
-          type-safe channels:
+          <strong>Maximum simplicity!</strong> React-like syntax for reactive server components:
         </p>
-        <pre className="bg-white p-2 rounded text-xs font-mono overflow-x-auto">
-          {`// 1. Define a typed channel
-const clockChannel = defineChannel<
-  { time: number },
-  { interval?: number }
->('clock');
+        <pre className="bg-white p-3 rounded text-xs font-mono overflow-x-auto">
+          {`// Just use the hook in your server component!
+export default function Clock({ interval = 1000 }) {
+  const time = useReactive(Date.now(), (stream) => {
+    const id = setInterval(() => {
+      stream.next(Date.now())
+    }, interval)
+    return () => clearInterval(id)
+  }, [interval])  // deps array = automatic deduplication!
 
-// 2. Register handler (runs on server)
-onChannel(clockChannel, {
-  init: ({ scope, broadcast }) => {
-    const interval = setInterval(() => {
-      broadcast({ time: Date.now() });
-    }, scope.interval || 1000);
-    return () => clearInterval(interval);
-  },
-});
-
-// 3. Subscribe in component (no ID needed!)
-<Subscribe channel={clockChannel} scope={{ interval: 1000 }}>
-  {(data) => <div>{data?.time}</div>}
-</Subscribe>`}
+  return <div>{new Date(time).toLocaleTimeString()}</div>
+}`}
         </pre>
-        <div className="mt-2 p-2 bg-purple-100 rounded text-xs">
-          <strong>Key improvements:</strong>
+        <div className="mt-3 p-2 bg-purple-100 rounded text-xs">
+          <strong>Key features:</strong>
           <ul className="list-disc list-inside mt-1 space-y-1">
-            <li>Fully type-safe channels with data + scope</li>
-            <li>No manual ID management whatsoever</li>
-            <li>Flexible filtering with user-defined logic</li>
-            <li>Pluggable backends (memory, Redis, Rivet, Cloudflare)</li>
-            <li>Clean separation: state lives in channels, not components</li>
+            <li>Familiar React-like syntax (useState + useEffect pattern)</li>
+            <li>Auto-deduplication via deps array</li>
+            <li>Full TypeScript support with inference</li>
+            <li>Supports shared signals for global state</li>
+            <li>Pure server components - no client JS needed!</li>
           </ul>
         </div>
       </div>
@@ -80,7 +64,7 @@ onChannel(clockChannel, {
             <strong>Server Components</strong> (orange/cyan borders) - Run only on server
           </li>
           <li>
-            <strong>Channel Components</strong> (below) - Subscribe to reactive channels via SSE
+            <strong>Reactive Components</strong> (below) - Server components with live updates via SSE
           </li>
         </ul>
       </div>
@@ -94,103 +78,54 @@ onChannel(clockChannel, {
       <ServerInfo />
       <DataFetch />
 
-      <h2 className="text-2xl font-bold mt-6 mb-3">Channel-Based Reactive Components (v0.4)</h2>
-
-      <div className="border-yellow-400 -mx-4 mt-4 rounded-sm border border-dashed p-4 bg-yellow-50">
-        <h3 className="text-sm font-bold mb-3">Type-Safe Channel Subscriptions</h3>
-        <p className="text-sm mb-4">
-          Each component below subscribes to a typed channel. Channels manage state on the server
-          and broadcast updates via SSE. Fully type-safe with autocomplete!
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Clock updating every second */}
-          <ChannelClock interval={1000} />
-
-          {/* Counter incrementing by 1 every 2 seconds */}
-          <ChannelCounter increment={1} interval={2000} />
-
-          {/* Fast clock updating every 500ms */}
-          <ChannelClock interval={500} />
-
-          {/* Counter incrementing by 5 every 3 seconds */}
-          <ChannelCounter increment={5} interval={3000} />
-        </div>
-
-        <div className="mt-4 p-3 bg-white rounded border border-yellow-300">
-          <p className="text-xs text-gray-600">
-            <strong>How it works:</strong> Define channels with typed data and scope. Channels run
-            on the server and broadcast to subscribers. Components use <code>&lt;Subscribe&gt;</code>{' '}
-            with full TypeScript autocomplete. State is managed by pluggable backends (memory,
-            Redis, Rivet, Cloudflare Durable Objects, etc.).
-          </p>
-        </div>
-
-        <div className="mt-3 p-3 bg-green-50 rounded border border-green-300">
-          <p className="text-xs text-green-800">
-            <strong>🎯 The breakthrough:</strong> By separating reactive state from component
-            lifecycle, we embrace RSC's design instead of fighting it. Channels solve the
-            fundamental mismatch between stateless RSC and stateful reactivity!
-          </p>
-        </div>
-      </div>
-
       <h2 className="text-2xl font-bold mt-6 mb-3">
-        ⚡ TRUE Reactive Server Components (RSC Streaming!)
+        ⚡ Reactive Server Components (useReactive)
       </h2>
 
       <div className="border-purple-400 -mx-4 mt-4 rounded-sm border border-dashed p-4 bg-purple-50">
         <h3 className="text-sm font-bold mb-3">
-          Server Components That Stream RSC Payloads Over SSE
+          Server Components That Stream Updates Over SSE
         </h3>
         <p className="text-sm mb-4">
-          These are <strong>actual server components</strong> (not client). When channels
-          broadcast, the server <strong>renders the component to RSC payload</strong> and streams
-          it directly over SSE. React consumes the stream and updates the component tree.{' '}
-          <strong>No navigation, no refetch - just pure RSC streaming!</strong>
+          These are <strong>actual server components</strong> (not client). They use the{' '}
+          <code>useReactive</code> hook to create reactive state. When state updates, the server
+          renders the component to an <strong>RSC payload</strong> and streams it over SSE. React
+          automatically patches the component tree.{' '}
+          <strong>No navigation, no refetch - just pure streaming!</strong>
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* RSC Streaming reactive components */}
-          <ReactiveSubscribe
-            channel={clockChannel}
-            scope={{ interval: 1000 }}
-            componentPath="components/reactive-clock"
-          />
-          <ReactiveSubscribe
-            channel={counterChannel}
-            scope={{ increment: 1, interval: 2000 }}
-            componentPath="components/reactive-counter"
-          />
-        </div>
-
         <div className="mt-4 p-3 bg-white rounded border border-purple-300">
-          <p className="text-xs text-purple-900">
+          <p className="text-xs text-purple-900 mb-2">
             <strong>How it works:</strong>
           </p>
-          <ol className="text-xs text-gray-700 list-decimal list-inside mt-2 space-y-1">
-            <li>Channel broadcasts update on server</li>
-            <li>
-              Server renders component with new data to <strong>RSC payload</strong> (React Flight
-              format)
-            </li>
-            <li>
-              RSC payload chunks streamed over SSE to <code>ReactiveSubscribe</code>
-            </li>
-            <li>
-              Client uses <code>createFromReadableStream</code> to parse RSC payload
-            </li>
+          <ol className="text-xs text-gray-700 list-decimal list-inside space-y-1">
+            <li>Component calls <code>useReactive(initialValue, streamFn, deps)</code></li>
+            <li>Runtime registers stream handler with automatic deduplication</li>
+            <li>Stream function produces updates on the server</li>
+            <li>Server renders component to RSC payload (React Flight format)</li>
+            <li>RSC payload streamed over SSE to client wrapper</li>
+            <li>Client parses with <code>createFromReadableStream</code></li>
             <li>React automatically updates component tree - smooth and efficient!</li>
           </ol>
         </div>
 
         <div className="mt-3 p-3 bg-purple-100 rounded border border-purple-200">
           <p className="text-xs text-purple-800">
-            <strong>🚀 This is THE breakthrough!</strong> We're streaming RSC payloads directly
-            over SSE. Server components render on the server, their output is serialized as RSC
-            payload, streamed to the client, and React patches the tree. No navigation tricks, no
-            refetch - just pure React Server Components streaming. This is the real deal!
+            <strong>🚀 The DX breakthrough!</strong> No more manual channel definitions, no string
+            paths, no registration boilerplate. Just use <code>useReactive</code> in your server
+            component and it works. Familiar React patterns, maximum simplicity!
           </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <div className="p-4 bg-white rounded border border-gray-200">
+            <p className="text-xs text-gray-600 mb-2">
+              <strong>Coming soon:</strong> Reactive demos
+            </p>
+            <p className="text-xs text-gray-500">
+              Clock, counter, and shared signal examples will be wired up next!
+            </p>
+          </div>
         </div>
       </div>
 

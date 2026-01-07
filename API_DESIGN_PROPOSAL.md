@@ -526,7 +526,7 @@ export default function Counter() {
 
 ## Recommended Approach: Hybrid Design 3 + 7
 
-**Combine the best parts:**
+**Combine the best parts with React-like syntax:**
 
 ```tsx
 // lib/reactive.ts - Core
@@ -534,25 +534,16 @@ export { signal, computed } from './signals'
 export { useReactive } from './hooks'
 
 // components/clock.tsx
-import { useReactive, signal } from '../lib/reactive'
+import { useReactive } from '../lib/reactive'
 
 export default function Clock({ interval = 1000 }) {
-  // Create reactive state that auto-streams
-  const time = useReactive('clock', {
-    // Scope for deduplication
-    scope: { interval },
-
-    // Initial value
-    initial: Date.now(),
-
-    // Update function (runs on server)
-    stream: (stream) => {
-      const id = setInterval(() => {
-        stream.next(Date.now())
-      }, interval)
-      return () => clearInterval(id)
-    }
-  })
+  // Familiar React-like syntax: initial value, stream function, deps
+  const time = useReactive(Date.now(), (stream) => {
+    const id = setInterval(() => {
+      stream.next(Date.now())
+    }, interval)
+    return () => clearInterval(id)
+  }, [interval])  // deps array becomes scope for deduplication
 
   return <div>{new Date(time).toLocaleTimeString()}</div>
 }
@@ -566,14 +557,29 @@ export default function Clock() {
 }
 ```
 
+### API Signature
+
+```tsx
+// Inline reactive state with stream
+function useReactive<T>(
+  initialValue: T,
+  stream: (stream: Stream<T>) => Cleanup,
+  deps: any[]
+): T
+
+// Subscribe to existing signal
+function useReactive<T>(signal: Signal<T>): T
+```
+
 ### Why This Approach?
 
-1. **Flexible**: Supports both inline and shared reactive state
-2. **Simple**: One hook to learn (`useReactive`)
+1. **Familiar**: Mirrors `useState` + `useEffect` patterns
+2. **Simple**: Clean syntax, minimal ceremony
 3. **Type-safe**: Full TypeScript support
 4. **Co-located**: Logic with component by default
 5. **Composable**: Signals can be shared and composed
 6. **No magic**: Explicit about what's reactive
+7. **Auto-deduplication**: Deps array serialized as scope - same deps = shared stream
 
 ---
 
