@@ -207,6 +207,233 @@ RivetKit supports serverless platforms through its proxy/engine architecture. Se
 4. **RSC re-renders** happen automatically via SSE streaming
 5. **State persists** in RivetKit's configured storage
 
+## Passing Context to RivetKit Actors
+
+You can pass custom context (like user authentication data) from your components to RivetKit actors. This is useful for implementing security, multi-tenancy, or user-specific logic in your actors.
+
+### Method 1: Global Context Provider
+
+Define a function that provides context for all actor calls:
+
+```typescript
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivetkit';
+
+const backend = initReactiveBackend({
+  registry: reactiveRegistry,
+
+  // This function is called for every actor call
+  getContext: async () => {
+    // Extract user from your auth system (JWT, session, etc.)
+    const user = await getCurrentUser();
+    return {
+      userId: user.id,
+      role: user.role,
+      organizationId: user.organizationId,
+    };
+  }
+});
+```
+
+The context will be available in your actor actions via RivetKit's context parameter:
+
+```typescript
+import { actor } from 'rivetkit';
+
+export const myActor = actor({
+  state: { data: {} },
+
+  actions: {
+    getData: (c, params, context) => {
+      // Access user context passed from components
+      const userId = context?.user?.userId;
+
+      // Implement your security logic
+      if (!userId) {
+        throw new Error('Authentication required');
+      }
+
+      // Return user-specific data
+      return c.state.data[userId];
+    },
+
+    setData: (c, { value }, context) => {
+      const userId = context?.user?.userId;
+
+      if (!userId) {
+        throw new Error('Authentication required');
+      }
+
+      c.state.data[userId] = value;
+      return { success: true };
+    }
+  }
+});
+```
+
+### Method 2: Per-Component Context
+
+Pass context when using reactive hooks:
+
+```typescript
+import { useServerState } from 'kawa';
+import { mySignal } from './signals';
+
+function UserProfile({ userId }: { userId: string }) {
+  const data = useServerState(mySignal, {
+    context: {
+      userId,
+      role: 'user',
+      organizationId: 'org_123'
+    }
+  });
+
+  return <div>{data.name}</div>;
+}
+```
+
+Or with reactive streams:
+
+```typescript
+import { useReactiveStream } from 'kawa';
+
+function UserNotifications({ userId }: { userId: string }) {
+  const notifications = useReactiveStream(
+    [],
+    (stream) => {
+      // Fetch user-specific data
+      fetchNotifications(userId).then(stream.next);
+    },
+    [userId],
+    {
+      context: { userId, role: 'user' }
+    }
+  );
+
+  return <div>{notifications.length} notifications</div>;
+}
+```
+
+### Method 3: Per-Tenant Backends
+
+For multi-tenancy, create isolated backends per tenant:
+
+```typescript
+function getTenantBackend(tenantId: string) {
+  return initReactiveBackend({
+    registry: reactiveRegistry,
+    actorId: tenantId, // Each tenant gets its own actor instance
+    global: false,
+
+    getContext: async () => {
+      const user = await getCurrentUser();
+
+      // Verify user belongs to this tenant
+      if (user.tenantId !== tenantId) {
+        throw new Error('Access denied');
+      }
+
+      return { userId: user.id, tenantId };
+    }
+  });
+}
+```
+
+### Example: Custom Security in Actors
+
+Here's how you might implement authentication and authorization in your own actors:
+
+```typescript
+import { actor } from 'rivetkit';
+
+export const postsActor = actor({
+  state: {
+    posts: {} as Record<string, {
+      id: string;
+      content: string;
+      authorId: string;
+      organizationId: string;
+    }>
+  },
+
+  actions: {
+    // Anyone can read posts in their organization
+    getPosts: (c, params, context) => {
+      const orgId = context?.user?.organizationId;
+
+      if (!orgId) {
+        throw new Error('Authentication required');
+      }
+
+      // Filter to only show posts from user's organization
+      const orgPosts = Object.values(c.state.posts).filter(
+        post => post.organizationId === orgId
+      );
+
+      return { posts: orgPosts };
+    },
+
+    // Only authenticated users can create posts
+    createPost: (c, { content }, context) => {
+      const userId = context?.user?.userId;
+      const orgId = context?.user?.organizationId;
+
+      if (!userId || !orgId) {
+        throw new Error('Authentication required');
+      }
+
+      const postId = `post_${Date.now()}`;
+      c.state.posts[postId] = {
+        id: postId,
+        content,
+        authorId: userId,
+        organizationId: orgId,
+      };
+
+      return { postId };
+    },
+
+    // Only post author or admin can delete
+    deletePost: (c, { postId }, context) => {
+      const userId = context?.user?.userId;
+      const role = context?.user?.role;
+      const post = c.state.posts[postId];
+
+      if (!post) {
+        throw new Error('Post not found');
+      }
+
+      const isAuthor = post.authorId === userId;
+      const isAdmin = role === 'admin';
+
+      if (!isAuthor && !isAdmin) {
+        throw new Error('Permission denied');
+      }
+
+      delete c.state.posts[postId];
+      return { success: true };
+    }
+  }
+});
+```
+
+### Context Flow
+
+The context flows through the system like this:
+
+```
+Component
+  ↓ (pass context via options)
+useServerState/useReactiveStream
+  ↓ (store in runtime)
+ReactiveBackend.getContext()
+  ↓ (call actor with context)
+RivetKit Actor Action
+  ↓ (access via context parameter)
+Your Security Logic
+```
+
+**Note:** You can use either the global `getContext` function or pass context per-component. If both are provided, the component-level context takes precedence.
+
 ## API
 
 ### `initReactiveBackend(options)`
@@ -218,6 +445,7 @@ Initialize RivetKit backend for reactive signals.
 - `actorName?: string` - Actor name (default: 'reactiveState')
 - `actorId?: string` - Actor ID (default: 'global')
 - `global?: boolean` - Set as global default backend (default: true)
+- `getContext?: () => any | Promise<any>` - Function to get context for actor calls
 
 **Returns:** `ReactiveBackend` instance
 
@@ -231,6 +459,15 @@ const userBackend = initReactiveBackend({
   registry,
   actorId: 'users',
   global: false
+});
+
+// With context provider
+const backend = initReactiveBackend({
+  registry,
+  getContext: async () => {
+    const user = await getCurrentUser();
+    return { userId: user.id, role: user.role };
+  }
 });
 ```
 
