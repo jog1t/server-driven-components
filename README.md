@@ -63,6 +63,20 @@ pnpm dev
 pnpm build
 ```
 
+## Testing Preview Packages
+
+Every pull request automatically publishes a preview package via [pkg.pr.new](https://pkg.pr.new). This allows you to test changes before they're merged:
+
+```bash
+# Install preview package from a PR
+pnpm add https://pkg.pr.new/kawa@<pr-number>
+
+# Or test specific commits
+pnpm add https://pkg.pr.new/kawa@<commit-hash>
+```
+
+The preview package URL will be posted as a comment on each PR.
+
 ## Documentation
 
 Detailed design documents and research can be found in the [`docs/`](./docs) directory:

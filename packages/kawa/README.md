@@ -192,6 +192,16 @@ export default function Notifications() {
 }
 ```
 
+## Contributing
+
+We use [pkg.pr.new](https://pkg.pr.new) for testing changes in pull requests. Every PR automatically publishes a preview package that you can install and test:
+
+```bash
+pnpm add https://pkg.pr.new/kawa@<pr-number>
+```
+
+This makes it easy to test contributions before they're merged!
+
 ## License
 
 MIT
