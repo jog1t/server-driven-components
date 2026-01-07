@@ -1,5 +1,5 @@
 {
-  "name": "reactive-rsc",
+  "name": "kawa",
   "version": "0.1.0",
   "description": "Simple, type-safe reactivity for React Server Components",
   "type": "module",
@@ -43,5 +43,8 @@
     "@types/react": "^19.2.7",
     "tsup": "^8.0.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@preact/signals-core": "^1.12.1"
   }
 }

@@ -2,16 +2,18 @@
  * Demo Clock - Reactive Server Component
  *
  * Demonstrates useReactive with interval-based updates.
+ * Uses the reactive() HOC to auto-wrap with <Reactive> boundary.
  */
 
-import { useReactive } from 'reactive-rsc';
+import { useReactive } from 'kawa';
+import { reactive } from './reactive-hoc';
 
 interface DemoClockProps {
   interval?: number;
   _reactiveData?: number;
 }
 
-export default function DemoClock({ interval = 1000, _reactiveData }: DemoClockProps) {
+function DemoClock({ interval = 1000, _reactiveData }: DemoClockProps) {
   const time = useReactive(
     _reactiveData ?? Date.now(),
     (stream) => {
@@ -53,3 +55,6 @@ export default function DemoClock({ interval = 1000, _reactiveData }: DemoClockP
     </div>
   );
 }
+
+// Wrap with reactive() HOC - no need for <Reactive> wrapper at usage sites!
+export default reactive(DemoClock);

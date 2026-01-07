@@ -1,4 +1,4 @@
-# RivetKit Backend for reactive-rsc
+# RivetKit Backend for kawa
 
 Persistent, multi-server reactive state using [RivetKit](https://rivet.dev) actors.
 
@@ -15,7 +15,7 @@ The RivetKit backend provides:
 ## Installation
 
 ```bash
-pnpm add reactive-rsc rivetkit
+pnpm add kawa rivetkit
 ```
 
 ## Quick Start
@@ -24,7 +24,7 @@ pnpm add reactive-rsc rivetkit
 
 ```typescript
 // src/reactive.ts
-import { createReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
+import { createReactiveBackend, reactiveRegistry } from 'kawa/rivet';
 
 export const { signal, useReactive, useServerState } = createReactiveBackend({
   registry: reactiveRegistry
@@ -40,7 +40,7 @@ reactiveRegistry.start({ defaultServerPort: 3001 });
 ```typescript
 // src/registry.ts
 import { setup } from 'rivetkit';
-import { reactiveStateActor } from 'reactive-rsc/rivet';
+import { reactiveStateActor } from 'kawa/rivet';
 import { myActor } from './actors/my';
 
 export const registry = setup({
@@ -51,7 +51,7 @@ export const registry = setup({
 });
 
 // src/reactive.ts
-import { createReactiveBackend } from 'reactive-rsc/rivet';
+import { createReactiveBackend } from 'kawa/rivet';
 import { registry } from './registry';
 
 export const { signal, useReactive, useServerState } = createReactiveBackend({
@@ -132,7 +132,7 @@ export const { signal: appSignal } = createReactiveBackend({
 });
 
 // Temporary state - memory only
-import { signal as tempSignal } from 'reactive-rsc';
+import { signal as tempSignal } from 'kawa';
 ```
 
 ## Deployment
@@ -193,7 +193,7 @@ The pre-built RivetKit actor for reactive state storage.
 
 Add to your registry:
 ```typescript
-import { reactiveStateActor } from 'reactive-rsc/rivet';
+import { reactiveStateActor } from 'kawa/rivet';
 ```
 
 ### `reactiveRegistry`
@@ -202,7 +202,7 @@ Pre-made registry with just the `reactiveState` actor.
 
 Use if you don't have your own actors:
 ```typescript
-import { reactiveRegistry } from 'reactive-rsc/rivet';
+import { reactiveRegistry } from 'kawa/rivet';
 ```
 
 ## Examples

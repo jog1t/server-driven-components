@@ -3,7 +3,7 @@
 ## Basic Namespaces
 
 ```typescript
-import { namespace } from 'reactive-rsc';
+import { namespace } from 'kawa';
 
 // Create top-level namespace
 const app = namespace("app");
@@ -42,7 +42,7 @@ bobPos.set({ x: 300, y: 400 });
 
 ```typescript
 // src/namespaces.ts
-import { namespace } from 'reactive-rsc';
+import { namespace } from 'kawa';
 
 export const app = namespace("app");
 export const shop = app.namespace("shop");
@@ -76,7 +76,7 @@ export const userPreferences = user.family((userId: string) => ({
 
 ```typescript
 // src/components/UserProfile.tsx
-import { useServerState } from 'reactive-rsc';
+import { useServerState } from 'kawa';
 import { userProfile } from '../namespaces';
 
 export function UserProfile({ userId }: { userId: string }) {
@@ -107,7 +107,7 @@ export function updateUserProfile(userId: string, updates: Partial<Profile>) {
 
 ```typescript
 // src/namespaces.ts
-import { namespace } from 'reactive-rsc';
+import { namespace } from 'kawa';
 
 const multiplayer = namespace("multiplayer");
 const players = multiplayer.namespace("players");
@@ -143,7 +143,7 @@ export const roomMessages = rooms.family((roomId: string) => ({
 
 ```typescript
 // src/components/MultiplayerCursors.tsx
-import { useServerState } from 'reactive-rsc';
+import { useServerState } from 'kawa';
 import { playerCursor, roomState } from '../namespaces';
 
 export function UserCursor({ playerId }: { playerId: string }) {
@@ -182,7 +182,7 @@ export function CursorLayer({ roomId }: { roomId: string }) {
 
 ```typescript
 // src/server.ts
-import { initReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
 
 // Initialize RivetKit backend
 initReactiveBackend({
@@ -199,7 +199,7 @@ reactiveRegistry.start({ defaultServerPort: 3001 });
 
 ```typescript
 // src/namespaces.ts
-import { namespace } from 'reactive-rsc';
+import { namespace } from 'kawa';
 
 // These signals are now automatically persisted in RivetKit
 const users = namespace("users");
@@ -220,7 +220,7 @@ userPosition("alice").set({ x: 100, y: 200 });
 
 ```typescript
 // src/server.ts
-import { initReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
 
 // Different actor instances for different scopes
 initReactiveBackend({
@@ -265,15 +265,15 @@ profile.set({ invalid: true }); // ❌ TypeScript error
 
 **Before (factory pattern):**
 ```typescript
-import { createReactiveBackend } from 'reactive-rsc/rivet';
+import { createReactiveBackend } from 'kawa/rivet';
 
 export const { signal } = createReactiveBackend({ registry });
 ```
 
 **After (init + namespaces):**
 ```typescript
-import { initReactiveBackend } from 'reactive-rsc/rivet';
-import { namespace } from 'reactive-rsc';
+import { initReactiveBackend } from 'kawa/rivet';
+import { namespace } from 'kawa';
 
 // Initialize once
 initReactiveBackend({ registry });

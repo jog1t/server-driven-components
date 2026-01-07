@@ -1,18 +1,18 @@
 /**
- * RivetKit backend for reactive-rsc
+ * RivetKit backend for kawa
  *
  * Provides persistent, multi-server reactive state using RivetKit actors.
  *
  * @example
  * ```typescript
- * import { initReactiveBackend, reactiveRegistry } from 'reactive-rsc/rivet';
+ * import { initReactiveBackend, reactiveRegistry } from 'kawa/rivet';
  *
  * // Initialize once at server startup
  * initReactiveBackend({ registry: reactiveRegistry });
  * reactiveRegistry.start({ defaultServerPort: 3001 });
  *
  * // Then use signals normally - they're automatically persisted!
- * import { namespace } from 'reactive-rsc';
+ * import { namespace } from 'kawa';
  *
  * const users = namespace("users");
  * const userPos = users.signal("alice:position", { x: 0, y: 0 });

@@ -6,7 +6,7 @@
  * of individual components.
  */
 
-import { useServerState } from 'reactive-rsc';
+import { useServerState } from 'kawa';
 import { serverTime } from '../lib/signals/server-time';
 
 export default function DemoServerState() {
