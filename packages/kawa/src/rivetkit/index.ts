@@ -19,10 +19,46 @@
  * ```
  */
 
+// Core actors
 export { reactiveStateActor } from './actors/reactiveState';
+export { secureReactiveStateActor } from './actors/secureReactiveState';
+
+// Registry
 export { reactiveRegistry } from './registry';
+
+// Backend initialization
 export { initReactiveBackend, isRivetBackendInitialized } from './init';
 export type { ReactiveBackend } from './init';
+
+// Authentication & Authorization
+export {
+  // Error class
+  AuthError,
+
+  // Guard utilities
+  createGuard,
+  composeGuards,
+  withGuards,
+
+  // Built-in guards
+  requireAuth,
+  requireUserId,
+  requireRole,
+  requirePermission,
+  requireOwnership,
+  rateLimit,
+
+  // Helpers
+  parseAuthHeader,
+  createAuditLog,
+
+  // Types
+  type UserContext,
+  type AuthActorContext,
+  type Guard,
+} from './auth';
+
+// RivetKit types
 export type { Registry } from 'rivetkit';
 
 // Note: The factory pattern (createReactiveBackend) has been replaced

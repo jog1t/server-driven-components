@@ -23,11 +23,15 @@ interface ReactiveStream<T = any> {
   subscribers: Set<Subscriber<T>>;
   cleanup?: () => void;
   currentValue: T;
+  context?: any;
 }
 
 class ReactiveRuntime {
   // Map of componentId+scopeHash -> ReactiveStream
   private streams = new Map<string, ReactiveStream>();
+
+  // Map of signal -> context for component-level auth
+  private signalContexts = new Map<any, any>();
 
   /**
    * Register a reactive component stream
@@ -36,7 +40,8 @@ class ReactiveRuntime {
     componentId: string,
     scope: any[],
     initialValue: T,
-    streamFn: StreamFunction<T>
+    streamFn: StreamFunction<T>,
+    context?: any
   ): string {
     const scopeKey = this.getScopeKey(componentId, scope);
 
@@ -54,11 +59,26 @@ class ReactiveRuntime {
       scope,
       subscribers: new Set(),
       currentValue: initialValue,
+      context,
     };
 
     this.streams.set(scopeKey, stream);
 
     return scopeKey;
+  }
+
+  /**
+   * Set context for a signal (used by components)
+   */
+  setComponentContext(signal: any, context: any): void {
+    this.signalContexts.set(signal, context);
+  }
+
+  /**
+   * Get context for a signal
+   */
+  getComponentContext(signal: any): any | undefined {
+    return this.signalContexts.get(signal);
   }
 
   /**
@@ -144,6 +164,14 @@ class ReactiveRuntime {
   getCurrentValue<T>(streamKey: string): T | undefined {
     const stream = this.streams.get(streamKey);
     return stream?.currentValue;
+  }
+
+  /**
+   * Get context for a stream
+   */
+  getStreamContext(streamKey: string): any | undefined {
+    const stream = this.streams.get(streamKey);
+    return stream?.context;
   }
 
   /**
