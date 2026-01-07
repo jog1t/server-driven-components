@@ -37,6 +37,18 @@ The core library providing reactive primitives for React Server Components:
 
 [Read the full documentation →](./packages/kawa/README.md)
 
+### [`rivet-backend`](./packages/rivet-backend) **[New!]**
+
+A RivetKit-based backend server with stateful actors:
+
+- **Counter actor** - Shared state with increment/decrement
+- **Chat room actor** - Real-time messaging with history
+- **Server time actor** - Automatic updates with lifecycle hooks
+- File System persistence for local development
+- WebSocket support for real-time events
+
+[Read the full documentation →](./packages/rivet-backend/README.md)
+
 ## Examples
 
 ### [Waku App](./examples/waku-app)

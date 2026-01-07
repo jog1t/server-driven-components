@@ -10,6 +10,8 @@ import {
   effect,
   type Signal as PreactSignal,
 } from '@preact/signals-core';
+import type { ReactiveBackend } from './rivetkit/init';
+import { syncSignalToRivet } from './rivetkit/init';
 
 export type Listener<T> = (value: T) => void;
 export type Cleanup = () => void;
@@ -58,7 +60,7 @@ export function signal<T>(initialValue: T): WritableSignal<T> {
 
   const wrapped = wrapSignal(preactSig);
 
-  return {
+  const writableSig: WritableSignal<T> = {
     ...wrapped,
     set(value: T | ((prev: T) => T)) {
       if (typeof value === 'function') {
@@ -66,11 +68,22 @@ export function signal<T>(initialValue: T): WritableSignal<T> {
       } else {
         preactSig.value = value;
       }
+
+      // Sync to backend if available (async, fire-and-forget)
+      const key = (writableSig as any).__key;
+      const backend = (writableSig as any).__backend as ReactiveBackend | undefined;
+      if (key && backend) {
+        syncSignalToRivet(key, preactSig.value, backend).catch((err) => {
+          console.error(`Failed to sync signal ${key}:`, err);
+        });
+      }
     },
     update(fn: (prev: T) => T) {
-      preactSig.value = fn(preactSig.value);
+      writableSig.set(fn);
     },
   };
+
+  return writableSig;
 }
 
 /**

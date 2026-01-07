@@ -192,6 +192,96 @@ export default function Notifications() {
 }
 ```
 
+## Namespaces & Families
+
+Organize signals hierarchically for better structure:
+
+```typescript
+import { namespace } from 'kawa';
+
+// Create nested namespaces
+const app = namespace("app");
+const shop = app.namespace("shop");
+const users = app.namespace("users");
+
+// Create signals in namespaces
+const theme = app.signal("theme", "dark");      // Key: "app:theme"
+const products = shop.signal("products", []);   // Key: "app:shop:products"
+
+// Create families for dynamic entities
+const userPosition = users.family((userId: string) => ({
+  key: `${userId}:position`,
+  default: { x: 0, y: 0 }
+}));
+
+// Use the family
+const alicePos = userPosition("alice");  // Key: "app:users:alice:position"
+const bobPos = userPosition("bob");      // Key: "app:users:bob:position"
+```
+
+[See more examples →](./EXAMPLES.md)
+
+## Backends
+
+### Memory Backend (Default)
+
+The default implementation stores state in-memory. Simple and works out of the box, but:
+- ❌ State lost on server restart
+- ❌ Can't share state across servers
+- ✅ Perfect for development and simple use cases
+
+### RivetKit Backend (Optional)
+
+For production apps that need persistence and multi-server coordination:
+
+```bash
+pnpm add rivetkit
+```
+
+```typescript
+// src/server.ts
+import { initReactiveBackend, reactiveRegistry } from 'kawa/rivetkit';
+
+// Initialize once at server startup (sets global default)
+initReactiveBackend({ registry: reactiveRegistry });
+reactiveRegistry.start({ defaultServerPort: 3001 });
+
+// Now all signals are automatically persisted!
+import { namespace } from 'kawa';
+
+const users = namespace("users");
+const userPos = users.signal("alice:pos", { x: 0, y: 0 });
+// → Automatically saved to RivetKit
+// → Broadcast to all clients
+// → Survives server restarts
+```
+
+**Per-Namespace Backends:**
+
+You can also use different backends for different namespaces:
+
+```typescript
+// Create isolated backend for user data
+const userBackend = initReactiveBackend({
+  registry,
+  actorId: 'users',
+  global: false  // Don't set as global default
+});
+
+const users = namespace("users", { backend: userBackend });
+const analytics = namespace("analytics");  // Uses global backend
+```
+
+**Benefits:**
+- ✅ State persists across restarts
+- ✅ Multi-server coordination
+- ✅ File System / Redis / Postgres storage
+- ✅ Horizontal scaling
+- ✅ Works on serverless (Vercel, Cloudflare Workers)
+- ✅ Multi-tenancy with per-namespace backends
+
+[Learn more about the RivetKit backend →](./src/rivetkit/README.md)
+
 ## Contributing
 
 We use [pkg.pr.new](https://pkg.pr.new) for testing changes in pull requests. Every PR automatically publishes a preview package that you can install and test:
