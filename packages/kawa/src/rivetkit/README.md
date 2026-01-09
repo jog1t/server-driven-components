@@ -207,134 +207,68 @@ RivetKit supports serverless platforms through its proxy/engine architecture. Se
 4. **RSC re-renders** happen automatically via SSE streaming
 5. **State persists** in RivetKit's configured storage
 
-## Adding Authentication and Custom Logic
+## Adding Authorization and Custom Logic
 
-Kawa provides a factory function to extend the reactive state actor with your own logic. Use this to add authentication, authorization, logging, or any custom behavior.
+Kawa provides `createReactiveStateActor()` to let you add custom authorization, logging, or any other logic before/after actions execute.
 
-### Step 1: Create Your Custom Actor
-
-Use `createReactiveStateActor()` to add hooks:
+### Basic Example
 
 ```typescript
 // src/actors/secureReactiveState.ts
 import { createReactiveStateActor } from 'kawa/rivetkit';
 
-export const secureReactiveStateActor = createReactiveStateActor({
-  // Validate authentication when client connects
-  onConnect: (c) => {
-    if (!c.context?.userId) {
+export const secureActor = createReactiveStateActor({
+  // Run before ANY action
+  beforeAction: async (c, params, next) => {
+    // You control how to check permissions
+    // (e.g., check params, actor input, actor state, etc.)
+    if (!params.userId) {
       throw new Error('Authentication required');
     }
-    console.log(`User ${c.context.userId} connected`);
-  },
-
-  // Hook into setSignal to add authorization
-  setSignal: async (c, params, next) => {
-    const userId = c.context?.userId;
-    const role = c.context?.role;
-
-    // Only admins can set signals in the "admin:" namespace
-    if (params.key.startsWith('admin:') && role !== 'admin') {
-      throw new Error('Admin access required');
-    }
-
-    // Log the action
-    console.log(`User ${userId} setting signal ${params.key}`);
 
     // Call the original action
-    const result = await next(params);
-
-    return result;
-  },
-
-  // Hook into getAllSignals to filter by user
-  getAllSignals: async (c, params, next) => {
-    const userId = c.context?.userId;
-    const result = await next(params);
-
-    // Filter to only return signals this user can access
-    const filtered = Object.keys(result.signals).reduce((acc, key) => {
-      if (key.startsWith(`user:${userId}:`)) {
-        acc[key] = result.signals[key];
-      }
-      return acc;
-    }, {} as Record<string, any>);
-
-    return { signals: filtered };
+    return await next(params);
   },
 });
 ```
-
-### Step 2: Set Up Registry with Context
-
-Use RivetKit's `contextFn` to provide auth context:
 
 ```typescript
 // src/registry.ts
 import { setup } from 'rivetkit';
-import { secureReactiveStateActor } from './actors/secureReactiveState';
+import { secureActor } from './actors/secureReactiveState';
 
 export const registry = setup({
   use: {
-    reactiveState: secureReactiveStateActor,
-  },
-
-  // Provide context for all actor calls
-  contextFn: async (req) => {
-    // Extract auth from request (JWT, session, etc.)
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return { userId: null, role: null };
-    }
-
-    // Verify token and return user context
-    const user = await verifyToken(token);
-
-    return {
-      userId: user.id,
-      role: user.role,
-      organizationId: user.organizationId,
-    };
-  },
+    reactiveState: secureActor,
+  }
 });
-```
-
-### Step 3: Initialize Backend
-
-```typescript
-// src/server.ts
-import { initReactiveBackend } from 'kawa/rivetkit';
-import { registry } from './registry';
-
-const backend = initReactiveBackend({ registry });
-
-registry.start({ defaultServerPort: 3001 });
 ```
 
 ### Available Hooks
 
-All hooks receive `(context, params, next)`:
-- `context`: Actor context with your custom data from `contextFn`
-- `params`: Action parameters
-- `next`: Function to call the original action
-
 ```typescript
 createReactiveStateActor({
   // Called when client connects
-  onConnect: (context) => { ... },
+  onConnect: (c) => {
+    console.log('Client connected', c.actorId);
+  },
 
   // Called before ANY action
-  beforeAction: async (context, params, next) => {
-    // Your logic before any action
-    const result = await next(params);
-    // Your logic after any action
-    return result;
+  beforeAction: async (c, params, next) => {
+    // Your authorization logic
+    return await next(params);
   },
 
   // Or hook into specific actions
+  setSignal: async (c, params, next) => {
+    // Check permissions for writes
+    if (params.key.startsWith('admin:') && !params.isAdmin) {
+      throw new Error('Admin access required');
+    }
+    return await next(params);
+  },
+
   getSignal: async (c, params, next) => { ... },
-  setSignal: async (c, params, next) => { ... },
   deleteSignal: async (c, params, next) => { ... },
   getAllSignals: async (c, params, next) => { ... },
   updateStream: async (c, params, next) => { ... },
@@ -345,55 +279,34 @@ createReactiveStateActor({
 });
 ```
 
-### Example: Multi-Tenant Isolation
-
-Create isolated actor instances per organization:
+### Example: Namespace-Based Authorization
 
 ```typescript
-// src/registry.ts
-export const registry = setup({
-  use: {
-    reactiveState: createReactiveStateActor({
-      onConnect: (c) => {
-        if (!c.context?.organizationId) {
-          throw new Error('Organization context required');
-        }
-      },
+export const secureActor = createReactiveStateActor({
+  setSignal: async (c, params, next) => {
+    // Only allow setting signals in user's namespace
+    const userId = params.userId; // However you pass user info
 
-      // Filter all reads by organization
-      getAllSignals: async (c, params, next) => {
-        const orgId = c.context.organizationId;
-        const result = await next(params);
+    if (!params.key.startsWith(`user:${userId}:`)) {
+      throw new Error('Can only set signals in your own namespace');
+    }
 
-        // Only return signals for this organization
-        const filtered = Object.keys(result.signals)
-          .filter(key => key.startsWith(`org:${orgId}:`))
-          .reduce((acc, key) => {
-            acc[key] = result.signals[key];
-            return acc;
-          }, {} as Record<string, any>);
-
-        return { signals: filtered };
-      },
-
-      // Prefix all writes with organization
-      setSignal: async (c, params, next) => {
-        const orgId = c.context.organizationId;
-
-        // Automatically namespace by organization
-        const namespacedKey = `org:${orgId}:${params.key}`;
-
-        return next({ ...params, key: namespacedKey });
-      },
-    }),
+    return await next(params);
   },
 
-  contextFn: async (req) => {
-    const user = await getUserFromRequest(req);
-    return {
-      userId: user.id,
-      organizationId: user.organizationId,
-    };
+  getAllSignals: async (c, params, next) => {
+    const userId = params.userId;
+    const result = await next(params);
+
+    // Filter to only return user's signals
+    const filtered = Object.keys(result.signals)
+      .filter(key => key.startsWith(`user:${userId}:`))
+      .reduce((acc, key) => {
+        acc[key] = result.signals[key];
+        return acc;
+      }, {} as Record<string, any>);
+
+    return { signals: filtered };
   },
 });
 ```
@@ -405,12 +318,11 @@ const rateLimiter = new Map<string, number[]>();
 
 export const rateLimitedActor = createReactiveStateActor({
   setSignal: async (c, params, next) => {
-    const userId = c.context?.userId || 'anonymous';
+    const userId = params.userId || 'anonymous';
     const now = Date.now();
     const windowMs = 60000; // 1 minute
     const maxCalls = 100;
 
-    // Get user's recent calls
     const calls = rateLimiter.get(userId) || [];
     const recentCalls = calls.filter(time => now - time < windowMs);
 
@@ -418,11 +330,10 @@ export const rateLimitedActor = createReactiveStateActor({
       throw new Error('Rate limit exceeded');
     }
 
-    // Record this call
     recentCalls.push(now);
     rateLimiter.set(userId, recentCalls);
 
-    return next(params);
+    return await next(params);
   },
 });
 ```
@@ -432,31 +343,24 @@ export const rateLimitedActor = createReactiveStateActor({
 ```typescript
 export const auditedActor = createReactiveStateActor({
   beforeAction: async (c, params, next) => {
-    const userId = c.context?.userId;
-    const actionName = 'action'; // In real use, you'd track which action
     const startTime = Date.now();
+    const userId = params.userId;
 
     try {
       const result = await next(params);
 
-      // Log successful action
       console.log({
         timestamp: new Date().toISOString(),
         userId,
-        action: actionName,
-        params,
         success: true,
         duration: Date.now() - startTime,
       });
 
       return result;
     } catch (error) {
-      // Log failed action
       console.error({
         timestamp: new Date().toISOString(),
         userId,
-        action: actionName,
-        params,
         success: false,
         error: error.message,
         duration: Date.now() - startTime,
@@ -464,34 +368,6 @@ export const auditedActor = createReactiveStateActor({
 
       throw error;
     }
-  },
-});
-```
-
-### Using with Existing Actors
-
-If you have existing RivetKit actors, just add the Kawa actor alongside them:
-
-```typescript
-import { setup } from 'rivetkit';
-import { createReactiveStateActor } from 'kawa/rivetkit';
-import { myCustomActor } from './actors/my';
-
-export const registry = setup({
-  use: {
-    // Your existing actors
-    myCustomActor,
-
-    // Kawa's reactive state actor (with or without hooks)
-    reactiveState: createReactiveStateActor({
-      onConnect: (c) => {
-        // Your auth logic
-      },
-    }),
-  },
-
-  contextFn: async (req) => {
-    // Your context provider
   },
 });
 ```
@@ -525,7 +401,7 @@ const userBackend = initReactiveBackend({
 
 ### `createReactiveStateActor(hooks?)`
 
-Create a reactive state actor with custom hooks for authentication, logging, etc.
+Create a reactive state actor with custom hooks for authorization, logging, etc.
 
 **Parameters:**
 - `hooks?: ReactiveStateActorHooks` - Optional hooks to customize actor behavior
@@ -550,17 +426,11 @@ Create a reactive state actor with custom hooks for authentication, logging, etc
 import { createReactiveStateActor } from 'kawa/rivetkit';
 
 const actor = createReactiveStateActor({
-  onConnect: (c) => {
-    if (!c.context?.userId) {
-      throw new Error('Authentication required');
+  beforeAction: async (c, params, next) => {
+    // Your authorization logic
+    if (!params.userId) {
+      throw new Error('Auth required');
     }
-  },
-
-  setSignal: async (c, params, next) => {
-    // Your custom logic
-    console.log(`User ${c.context.userId} setting ${params.key}`);
-
-    // Call original action
     return await next(params);
   },
 });

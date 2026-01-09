@@ -109,8 +109,8 @@ export const reactiveStateActor = actor({
 /**
  * Action hook that can wrap actor actions with custom logic
  */
-export type ActionHook<TParams = any, TResult = any, TContext = any> = (
-  context: ActorContext & { context?: TContext },
+export type ActionHook<TParams = any, TResult = any> = (
+  context: ActorContext,
   params: TParams,
   next: (params: TParams) => TResult | Promise<TResult>
 ) => TResult | Promise<TResult>;
@@ -118,62 +118,69 @@ export type ActionHook<TParams = any, TResult = any, TContext = any> = (
 /**
  * Hooks that can be applied to the reactive state actor
  */
-export interface ReactiveStateActorHooks<TContext = any> {
+export interface ReactiveStateActorHooks {
   /**
    * Called when a client connects to the actor
-   * Use this to validate context/authentication
+   * Use this to validate authentication/authorization
    */
-  onConnect?: (context: ActorContext & { context?: TContext }) => void | Promise<void>;
+  onConnect?: (context: ActorContext) => void | Promise<void>;
 
   /**
    * Called before any action is executed
+   * Use this to implement authorization logic
    */
-  beforeAction?: ActionHook<any, any, TContext>;
+  beforeAction?: ActionHook<any, any>;
 
   /**
    * Specific hooks for each action
    */
-  getSignal?: ActionHook<{ key: string }, any, TContext>;
-  setSignal?: ActionHook<{ key: string; value: any }, any, TContext>;
-  deleteSignal?: ActionHook<{ key: string }, any, TContext>;
-  getAllSignals?: ActionHook<void, any, TContext>;
-  getStream?: ActionHook<{ key: string }, any, TContext>;
-  updateStream?: ActionHook<{ key: string; value: any }, any, TContext>;
-  deleteStream?: ActionHook<{ key: string }, any, TContext>;
-  getAllStreams?: ActionHook<void, any, TContext>;
-  clear?: ActionHook<void, any, TContext>;
+  getSignal?: ActionHook<{ key: string }, any>;
+  setSignal?: ActionHook<{ key: string; value: any }, any>;
+  deleteSignal?: ActionHook<{ key: string }, any>;
+  getAllSignals?: ActionHook<void, any>;
+  getStream?: ActionHook<{ key: string }, any>;
+  updateStream?: ActionHook<{ key: string; value: any }, any>;
+  deleteStream?: ActionHook<{ key: string }, any>;
+  getAllStreams?: ActionHook<void, any>;
+  clear?: ActionHook<void, any>;
 }
 
 /**
  * Create a reactive state actor with custom hooks
  *
+ * This allows you to add authorization, logging, or any custom logic
+ * before/after actions execute. You control how to check permissions
+ * (via input params, actor state, etc.)
+ *
  * @example
  * ```typescript
  * const myActor = createReactiveStateActor({
  *   onConnect: (c) => {
- *     // Validate authentication
- *     if (!c.context?.userId) {
- *       throw new Error('Authentication required');
+ *     // Validate on connection
+ *     console.log('Client connected to actor', c.actorId);
+ *   },
+ *
+ *   beforeAction: async (c, params, next) => {
+ *     // Check authorization before ANY action
+ *     // (Access user info however you pass it - e.g., via params)
+ *     if (!params.userId) {
+ *       throw new Error('userId required');
  *     }
+ *     return await next(params);
  *   },
  *
  *   setSignal: async (c, params, next) => {
- *     // Custom logic before setting signal
- *     console.log(`User ${c.context.userId} setting signal ${params.key}`);
- *
- *     // Call the original action
- *     const result = await next(params);
- *
- *     // Custom logic after
- *     console.log('Signal set successfully');
- *
- *     return result;
+ *     // Or check authorization for specific actions
+ *     if (params.key.startsWith('admin:') && !params.isAdmin) {
+ *       throw new Error('Admin access required');
+ *     }
+ *     return await next(params);
  *   }
  * });
  * ```
  */
-export function createReactiveStateActor<TContext = any>(
-  hooks: ReactiveStateActorHooks<TContext> = {}
+export function createReactiveStateActor(
+  hooks: ReactiveStateActorHooks = {}
 ) {
   return actor({
     state: {
@@ -183,7 +190,7 @@ export function createReactiveStateActor<TContext = any>(
 
     onConnect: hooks.onConnect
       ? async (c) => {
-          await hooks.onConnect!(c as any);
+          await hooks.onConnect!(c);
         }
       : undefined,
 
@@ -202,10 +209,10 @@ export function createReactiveStateActor<TContext = any>(
         });
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.getSignal) {
-          return hooks.getSignal(c as any, params, next);
+          return hooks.getSignal(c, params, next);
         }
         return next();
       },
@@ -217,10 +224,10 @@ export function createReactiveStateActor<TContext = any>(
         };
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.setSignal) {
-          return hooks.setSignal(c as any, params, next);
+          return hooks.setSignal(c, params, next);
         }
         return next();
       },
@@ -233,10 +240,10 @@ export function createReactiveStateActor<TContext = any>(
         };
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.deleteSignal) {
-          return hooks.deleteSignal(c as any, params, next);
+          return hooks.deleteSignal(c, params, next);
         }
         return next();
       },
@@ -245,10 +252,10 @@ export function createReactiveStateActor<TContext = any>(
         const next = () => ({ signals: c.state.signals });
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.getAllSignals) {
-          return hooks.getAllSignals(c as any, params, next);
+          return hooks.getAllSignals(c, params, next);
         }
         return next();
       },
@@ -260,10 +267,10 @@ export function createReactiveStateActor<TContext = any>(
         });
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.getStream) {
-          return hooks.getStream(c as any, params, next);
+          return hooks.getStream(c, params, next);
         }
         return next();
       },
@@ -275,10 +282,10 @@ export function createReactiveStateActor<TContext = any>(
         };
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.updateStream) {
-          return hooks.updateStream(c as any, params, next);
+          return hooks.updateStream(c, params, next);
         }
         return next();
       },
@@ -291,10 +298,10 @@ export function createReactiveStateActor<TContext = any>(
         };
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.deleteStream) {
-          return hooks.deleteStream(c as any, params, next);
+          return hooks.deleteStream(c, params, next);
         }
         return next();
       },
@@ -303,10 +310,10 @@ export function createReactiveStateActor<TContext = any>(
         const next = () => ({ streams: c.state.streams });
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.getAllStreams) {
-          return hooks.getAllStreams(c as any, params, next);
+          return hooks.getAllStreams(c, params, next);
         }
         return next();
       },
@@ -319,10 +326,10 @@ export function createReactiveStateActor<TContext = any>(
         };
 
         if (hooks.beforeAction) {
-          return hooks.beforeAction(c as any, params, next);
+          return hooks.beforeAction(c, params, next);
         }
         if (hooks.clear) {
-          return hooks.clear(c as any, params, next);
+          return hooks.clear(c, params, next);
         }
         return next();
       },
