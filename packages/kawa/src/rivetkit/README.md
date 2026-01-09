@@ -207,6 +207,171 @@ RivetKit supports serverless platforms through its proxy/engine architecture. Se
 4. **RSC re-renders** happen automatically via SSE streaming
 5. **State persists** in RivetKit's configured storage
 
+## Adding Authorization and Custom Logic
+
+Kawa provides `createReactiveStateActor()` to let you add custom authorization, logging, or any other logic before/after actions execute.
+
+### Basic Example
+
+```typescript
+// src/actors/secureReactiveState.ts
+import { createReactiveStateActor } from 'kawa/rivetkit';
+
+export const secureActor = createReactiveStateActor({
+  // Run before ANY action
+  beforeAction: async (c, params, next) => {
+    // You control how to check permissions
+    // (e.g., check params, actor input, actor state, etc.)
+    if (!params.userId) {
+      throw new Error('Authentication required');
+    }
+
+    // Call the original action
+    return await next(params);
+  },
+});
+```
+
+```typescript
+// src/registry.ts
+import { setup } from 'rivetkit';
+import { secureActor } from './actors/secureReactiveState';
+
+export const registry = setup({
+  use: {
+    reactiveState: secureActor,
+  }
+});
+```
+
+### Available Hooks
+
+```typescript
+createReactiveStateActor({
+  // Called when client connects
+  onConnect: (c) => {
+    console.log('Client connected', c.actorId);
+  },
+
+  // Called before ANY action
+  beforeAction: async (c, params, next) => {
+    // Your authorization logic
+    return await next(params);
+  },
+
+  // Or hook into specific actions
+  setSignal: async (c, params, next) => {
+    // Check permissions for writes
+    if (params.key.startsWith('admin:') && !params.isAdmin) {
+      throw new Error('Admin access required');
+    }
+    return await next(params);
+  },
+
+  getSignal: async (c, params, next) => { ... },
+  deleteSignal: async (c, params, next) => { ... },
+  getAllSignals: async (c, params, next) => { ... },
+  updateStream: async (c, params, next) => { ... },
+  getStream: async (c, params, next) => { ... },
+  deleteStream: async (c, params, next) => { ... },
+  getAllStreams: async (c, params, next) => { ... },
+  clear: async (c, params, next) => { ... },
+});
+```
+
+### Example: Namespace-Based Authorization
+
+```typescript
+export const secureActor = createReactiveStateActor({
+  setSignal: async (c, params, next) => {
+    // Only allow setting signals in user's namespace
+    const userId = params.userId; // However you pass user info
+
+    if (!params.key.startsWith(`user:${userId}:`)) {
+      throw new Error('Can only set signals in your own namespace');
+    }
+
+    return await next(params);
+  },
+
+  getAllSignals: async (c, params, next) => {
+    const userId = params.userId;
+    const result = await next(params);
+
+    // Filter to only return user's signals
+    const filtered = Object.keys(result.signals)
+      .filter(key => key.startsWith(`user:${userId}:`))
+      .reduce((acc, key) => {
+        acc[key] = result.signals[key];
+        return acc;
+      }, {} as Record<string, any>);
+
+    return { signals: filtered };
+  },
+});
+```
+
+### Example: Rate Limiting
+
+```typescript
+const rateLimiter = new Map<string, number[]>();
+
+export const rateLimitedActor = createReactiveStateActor({
+  setSignal: async (c, params, next) => {
+    const userId = params.userId || 'anonymous';
+    const now = Date.now();
+    const windowMs = 60000; // 1 minute
+    const maxCalls = 100;
+
+    const calls = rateLimiter.get(userId) || [];
+    const recentCalls = calls.filter(time => now - time < windowMs);
+
+    if (recentCalls.length >= maxCalls) {
+      throw new Error('Rate limit exceeded');
+    }
+
+    recentCalls.push(now);
+    rateLimiter.set(userId, recentCalls);
+
+    return await next(params);
+  },
+});
+```
+
+### Example: Audit Logging
+
+```typescript
+export const auditedActor = createReactiveStateActor({
+  beforeAction: async (c, params, next) => {
+    const startTime = Date.now();
+    const userId = params.userId;
+
+    try {
+      const result = await next(params);
+
+      console.log({
+        timestamp: new Date().toISOString(),
+        userId,
+        success: true,
+        duration: Date.now() - startTime,
+      });
+
+      return result;
+    } catch (error) {
+      console.error({
+        timestamp: new Date().toISOString(),
+        userId,
+        success: false,
+        error: error.message,
+        duration: Date.now() - startTime,
+      });
+
+      throw error;
+    }
+  },
+});
+```
+
 ## API
 
 ### `initReactiveBackend(options)`
@@ -231,6 +396,43 @@ const userBackend = initReactiveBackend({
   registry,
   actorId: 'users',
   global: false
+});
+```
+
+### `createReactiveStateActor(hooks?)`
+
+Create a reactive state actor with custom hooks for authorization, logging, etc.
+
+**Parameters:**
+- `hooks?: ReactiveStateActorHooks` - Optional hooks to customize actor behavior
+
+**Available hooks:**
+- `onConnect?(context): void | Promise<void>` - Called when client connects
+- `beforeAction?(context, params, next): any` - Called before any action
+- `getSignal?(context, params, next): any` - Hook for getSignal action
+- `setSignal?(context, params, next): any` - Hook for setSignal action
+- `deleteSignal?(context, params, next): any` - Hook for deleteSignal action
+- `getAllSignals?(context, params, next): any` - Hook for getAllSignals action
+- `getStream?(context, params, next): any` - Hook for getStream action
+- `updateStream?(context, params, next): any` - Hook for updateStream action
+- `deleteStream?(context, params, next): any` - Hook for deleteStream action
+- `getAllStreams?(context, params, next): any` - Hook for getAllStreams action
+- `clear?(context, params, next): any` - Hook for clear action
+
+**Returns:** RivetKit actor
+
+**Example:**
+```typescript
+import { createReactiveStateActor } from 'kawa/rivetkit';
+
+const actor = createReactiveStateActor({
+  beforeAction: async (c, params, next) => {
+    // Your authorization logic
+    if (!params.userId) {
+      throw new Error('Auth required');
+    }
+    return await next(params);
+  },
 });
 ```
 

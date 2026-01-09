@@ -19,10 +19,22 @@
  * ```
  */
 
-export { reactiveStateActor } from './actors/reactiveState';
+// Core actors
+export {
+  reactiveStateActor,
+  createReactiveStateActor,
+  type ReactiveStateActorHooks,
+  type ActionHook,
+} from './actors/reactiveState';
+
+// Registry
 export { reactiveRegistry } from './registry';
+
+// Backend initialization
 export { initReactiveBackend, isRivetBackendInitialized } from './init';
 export type { ReactiveBackend } from './init';
+
+// RivetKit types
 export type { Registry } from 'rivetkit';
 
 // Note: The factory pattern (createReactiveBackend) has been replaced
